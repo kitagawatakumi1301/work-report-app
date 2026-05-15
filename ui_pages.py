@@ -19,6 +19,51 @@ import database as db
 
 
 # ============================================================
+# キャッシュ付きDBアクセス関数（60秒間キャッシュ）
+# ============================================================
+
+@st.cache_data(ttl=60)
+def _cached_get_reports_by_worker(worker_name: str) -> list:
+    return db.get_reports_by_worker(worker_name)
+
+@st.cache_data(ttl=60)
+def _cached_get_all_reports() -> list:
+    return db.get_all_reports()
+
+@st.cache_data(ttl=60)
+def _cached_get_report_by_id(report_id: int):
+    return db.get_report_by_id(report_id)
+
+@st.cache_data(ttl=60)
+def _cached_summary_monthly_user_hours() -> list:
+    return db.get_summary_monthly_user_hours()
+
+@st.cache_data(ttl=60)
+def _cached_summary_monthly_user_process_hours() -> list:
+    return db.get_summary_monthly_user_process_hours()
+
+@st.cache_data(ttl=60)
+def _cached_summary_e_attendance_days() -> list:
+    return db.get_summary_e_attendance_days()
+
+@st.cache_data(ttl=60)
+def _cached_summary_e_attendance_dates() -> list:
+    return db.get_summary_e_attendance_dates()
+
+@st.cache_data(ttl=60)
+def _cached_summary_fr_hours() -> list:
+    return db.get_summary_fr_hours()
+
+@st.cache_data(ttl=60)
+def _cached_summary_process_hours() -> list:
+    return db.get_summary_process_hours()
+
+def _clear_cache():
+    """書き込み後にキャッシュを全クリアして最新データを取得できるようにする"""
+    st.cache_data.clear()
+
+
+# ============================================================
 # ヘルパー関数
 # ============================================================
 
@@ -156,6 +201,7 @@ def _execute_save(data: dict):
     保存後は「自分の履歴」画面へ自動遷移する。
     """
     new_id = db.insert_report(data)
+    _clear_cache()  # 保存後にキャッシュをクリア
     # 遷移後の画面で成功メッセージを表示するため session_state に保存
     st.session_state["save_success_msg"] = f"✅ 日報を保存しました（ID: {new_id}）"
     # 「自分の履歴」画面へ遷移
@@ -172,8 +218,8 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
     """    履歴一覧 + インライン編集・削除を統合した画面。
     一覧から日報を選ぶと「編集する」「削除する」の選択肢が出る。
     """
-    # 30秒ごとに自動更新（最新データを反映）
-    st_autorefresh(interval=30_000, limit=None, key="history_autorefresh")
+    # 60秒ごとに自動更新（最新データを反映）
+    st_autorefresh(interval=60_000, limit=None, key="history_autorefresh")
 
     st.title("📋 自分の入力履歴")
     st.info(f"作業者：**{worker_name}**")
@@ -182,7 +228,7 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
         st.success(st.session_state.pop("save_success_msg"))
         st.balloons()
 
-    rows = db.get_reports_by_worker(worker_name)
+    rows = _cached_get_reports_by_worker(worker_name)
     if not rows:
         st.info("まだ日報が登録されていません。")
         return
@@ -246,7 +292,7 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
     # ── フェーズ1: 削除確認画面中の場合、セレクトボックスを表示しない
     if st.session_state["h_del_target_id"] is not None:
         target_id = st.session_state["h_del_target_id"]
-        rec = db.get_report_by_id(target_id)
+        rec = _cached_get_report_by_id(target_id)
         if rec is None:
             st.session_state["h_del_target_id"] = None
             st.rerun()
@@ -262,13 +308,13 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
             if st.button("🗑️ はい、削除します", type="primary", use_container_width=True, key="h_del_yes"):
                 if db.delete_report(target_id):
                     st.session_state["save_success_msg"] = "🗑️ 日報を削除しました。"
+                _clear_cache()
                 st.session_state["h_del_target_id"] = None
                 st.session_state["h_edit_key"] += 1
                 st.rerun()
         with cn:
             if st.button("キャンセル", use_container_width=True, key="h_del_no"):
                 st.session_state["h_del_target_id"] = None
-                st.session_state["h_edit_key"] += 1
                 st.rerun()
         return
 
@@ -277,7 +323,7 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
     if sel_label == "（選択してください）":
         return
 
-    rec = db.get_report_by_id(int(fdf[fdf["label"] == sel_label].iloc[0]["id"]))
+    rec = _cached_get_report_by_id(int(fdf[fdf["label"] == sel_label].iloc[0]["id"]))
     if rec is None:
         st.error("レコードが見つかりません。")
         return
@@ -344,6 +390,7 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
                 st.warning("⚠️ 時間帯が他の日報と重複しています：\n\n" + "\n".join(msgs))
             if db.update_report(rec["id"], update_data):
                 st.session_state["save_success_msg"] = "✅ 日報を更新しました。"
+                _clear_cache()
                 st.session_state["h_edit_key"] += 1
                 st.session_state["page"] = "自分の履歴"
                 st.rerun()
@@ -364,15 +411,15 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
 
 def page_admin():
     """管理者（石野）専用。全員の日報確認・集計・CSV/Excel出力。"""
-    # 30秒ごとに自動更新（全員の入力をリアルタイムで反映）
-    st_autorefresh(interval=30_000, limit=None, key="admin_autorefresh")
+    # 60秒ごとに自動更新（全員の入力をリアルタイムで反映）
+    st_autorefresh(interval=60_000, limit=None, key="admin_autorefresh")
 
     st.title("🔐 管理者専用画面")
 
     if "admin_success_msg" in st.session_state:
         st.success(st.session_state.pop("admin_success_msg"))
 
-    rows = db.get_all_reports()
+    rows = _cached_get_all_reports()
     if not rows:
         st.info("日報データがありません。")
         return
@@ -502,7 +549,7 @@ def page_admin():
 
     with tab1:
         st.markdown("#### A. 月別・作業者別 合計作業時間")
-        data_a = db.get_summary_monthly_user_hours()
+        data_a = _cached_summary_monthly_user_hours()
         if data_a:
             dfa = pd.DataFrame(data_a)
             dfa.columns = ["月", "作業者", "合計時間(h)"]
@@ -518,7 +565,7 @@ def page_admin():
 
     with tab2:
         st.markdown("#### B. 月別・作業者別・工程ID別 合計作業時間")
-        data_b = db.get_summary_monthly_user_process_hours()
+        data_b = _cached_summary_monthly_user_process_hours()
         if data_b:
             dfb = pd.DataFrame(data_b)
             dfb.columns = ["月", "作業者", "工程ID", "工程名", "合計時間(h)"]
@@ -536,7 +583,7 @@ def page_admin():
     with tab3:
         st.markdown("#### C. E工程 出勤日数集計")
         st.caption("※ 同じ作業者が同じ日に複数のE工程を入力しても、出勤日数は1日としてカウントします。")
-        data_c = db.get_summary_e_attendance_days()
+        data_c = _cached_summary_e_attendance_days()
         if data_c:
             dfc = pd.DataFrame(data_c)
             dfc.columns = ["月", "作業者", "E工程出勤日数"]
@@ -550,7 +597,7 @@ def page_admin():
             st.info("E工程のデータがありません。")
 
         with st.expander("E工程 出勤日一覧を確認"):
-            data_c2 = db.get_summary_e_attendance_dates()
+            data_c2 = _cached_summary_e_attendance_dates()
             if data_c2:
                 dfc2 = pd.DataFrame(data_c2)
                 dfc2.columns = ["月", "作業者", "出勤日"]
@@ -562,7 +609,7 @@ def page_admin():
 
     with tab4:
         st.markdown("#### D. FR工程 作業時間集計")
-        data_d = db.get_summary_fr_hours()
+        data_d = _cached_summary_fr_hours()
         if data_d:
             dfd = pd.DataFrame(data_d)
             dfd.columns = ["月", "作業者", "工程ID", "工程名", "FR合計時間(h)"]
@@ -579,7 +626,7 @@ def page_admin():
 
     with tab5:
         st.markdown("#### E. 工程ID別 合計時間")
-        data_e = db.get_summary_process_hours()
+        data_e = _cached_summary_process_hours()
         if data_e:
             dfe = pd.DataFrame(data_e)
             dfe.columns = ["月", "工程ID", "工程名", "合計時間(h)"]
