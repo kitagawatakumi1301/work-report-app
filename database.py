@@ -353,11 +353,11 @@ def get_summary_monthly_user_hours() -> list:
         SELECT
             substr(work_date, 1, 7) AS month,
             worker_name,
-            ROUND(SUM(hours), 1) AS total_hours
+            ROUND(CAST(SUM(hours) AS NUMERIC), 1) AS total_hours
         FROM work_reports
         WHERE deleted = 0
-        GROUP BY month, worker_name
-        ORDER BY month DESC, worker_name
+        GROUP BY substr(work_date, 1, 7), worker_name
+        ORDER BY substr(work_date, 1, 7) DESC, worker_name
     """)
     rows = _fetchall(cursor)
     conn.close()
@@ -374,11 +374,11 @@ def get_summary_monthly_user_process_hours() -> list:
             worker_name,
             process_id,
             process_name,
-            ROUND(SUM(hours), 1) AS total_hours
+            ROUND(CAST(SUM(hours) AS NUMERIC), 1) AS total_hours
         FROM work_reports
         WHERE deleted = 0
-        GROUP BY month, worker_name, process_id
-        ORDER BY month DESC, worker_name, process_id
+        GROUP BY substr(work_date, 1, 7), worker_name, process_id, process_name
+        ORDER BY substr(work_date, 1, 7) DESC, worker_name, process_id
     """)
     rows = _fetchall(cursor)
     conn.close()
@@ -397,8 +397,8 @@ def get_summary_e_attendance_days() -> list:
         FROM work_reports
         WHERE deleted = 0
           AND process_type = 'E'
-        GROUP BY month, worker_name
-        ORDER BY month DESC, worker_name
+        GROUP BY substr(work_date, 1, 7), worker_name
+        ORDER BY substr(work_date, 1, 7) DESC, worker_name
     """)
     rows = _fetchall(cursor)
     conn.close()
@@ -417,7 +417,7 @@ def get_summary_e_attendance_dates() -> list:
         FROM work_reports
         WHERE deleted = 0
           AND process_type = 'E'
-        ORDER BY month DESC, worker_name, work_date
+        ORDER BY substr(work_date, 1, 7) DESC, worker_name, work_date
     """)
     rows = _fetchall(cursor)
     conn.close()
@@ -434,12 +434,12 @@ def get_summary_fr_hours() -> list:
             worker_name,
             process_id,
             process_name,
-            ROUND(SUM(hours), 1) AS total_hours
+            ROUND(CAST(SUM(hours) AS NUMERIC), 1) AS total_hours
         FROM work_reports
         WHERE deleted = 0
           AND process_type = 'FR'
-        GROUP BY month, worker_name, process_id
-        ORDER BY month DESC, worker_name, process_id
+        GROUP BY substr(work_date, 1, 7), worker_name, process_id, process_name
+        ORDER BY substr(work_date, 1, 7) DESC, worker_name, process_id
     """)
     rows = _fetchall(cursor)
     conn.close()
@@ -455,11 +455,11 @@ def get_summary_process_hours() -> list:
             substr(work_date, 1, 7) AS month,
             process_id,
             process_name,
-            ROUND(SUM(hours), 1) AS total_hours
+            ROUND(CAST(SUM(hours) AS NUMERIC), 1) AS total_hours
         FROM work_reports
         WHERE deleted = 0
-        GROUP BY month, process_id
-        ORDER BY month DESC, process_id
+        GROUP BY substr(work_date, 1, 7), process_id, process_name
+        ORDER BY substr(work_date, 1, 7) DESC, process_id
     """)
     rows = _fetchall(cursor)
     conn.close()
