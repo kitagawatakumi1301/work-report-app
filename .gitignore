@@ -1,0 +1,20 @@
+# Streamlit Secrets（パスワード等）
+.streamlit/secrets.toml
+
+# SQLiteデータファイル（ローカル開発用）
+data/work_report.db
+data/workers_config.json
+
+# Python キャッシュ
+__pycache__/
+*.pyc
+*.pyo
+
+# テスト・開発用スクリプト
+generate_test_data.py
+test_logic.py
+check_db.py
+
+# エディタ設定
+.vscode/
+.idea/
