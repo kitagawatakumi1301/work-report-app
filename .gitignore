@@ -9,6 +9,7 @@ data/workers_config.json
 __pycache__/
 *.pyc
 *.pyo
+.codex_*/
 
 # テスト・開発用スクリプト
 generate_test_data.py

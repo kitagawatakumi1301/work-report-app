@@ -194,14 +194,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# 不要なUI（ForkボタンやDeployボタンなど）を強制的に非表示にするCSS
-hide_ui_style = """
-<style>
-    .stAppDeployButton {display:none !important;}
-    [data-testid="stToolbar"] {display:none !important;}
-</style>
-"""
-st.markdown(hide_ui_style, unsafe_allow_html=True)
+
 
 
 # ============================================================
