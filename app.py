@@ -194,6 +194,18 @@ st.set_page_config(
     layout="wide",
 )
 
+# 不要なUI（Forkボタンや右上のメニュー）だけを非表示にし、左上のサイドバー開閉ボタンは残すCSS
+hide_ui_style = """
+<style>
+    /* 右上のDeploy(Fork)ボタンを非表示 */
+    .stAppDeployButton {display:none !important;}
+    
+    /* 右上のGitHubアイコンやハンバーガーメニューが含まれるツールバーを非表示（サイドバーボタンには影響させない） */
+    [data-testid="stToolbar"] {visibility: hidden !important;}
+</style>
+"""
+st.markdown(hide_ui_style, unsafe_allow_html=True)
+
 
 
 
