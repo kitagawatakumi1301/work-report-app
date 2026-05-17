@@ -13,6 +13,7 @@ import io
 import json
 from pathlib import Path
 import streamlit as st
+import extra_streamlit_components as stx
 import database as db
 from ui_pages import page_input, page_history, page_admin
 
@@ -193,18 +194,31 @@ st.set_page_config(
     layout="wide",
 )
 
+# 不要なUI（ForkボタンやDeployボタンなど）を強制的に非表示にするCSS
+hide_ui_style = """
+<style>
+    .stAppDeployButton {display:none !important;}
+    [data-testid="stToolbar"] {display:none !important;}
+</style>
+"""
+st.markdown(hide_ui_style, unsafe_allow_html=True)
+
 
 # ============================================================
 # ログイン・利用者選択画面
 # ============================================================
-def page_login():
+def page_login(cookie_manager):
     """利用者選択画面。session_stateに作業者名を保存する。"""
     st.title("🗾 地籍調査日報アプリ")
     st.markdown("### 利用者を選択してください")
 
     # 固定リスト＋追加作業者を結合
     all_workers = _get_all_workers()
-    current = st.session_state.get("worker_name", all_workers[0])
+    
+    # Cookieから前回ログインしたユーザーを取得
+    saved_worker = cookie_manager.get(cookie="saved_worker_name")
+    
+    current = st.session_state.get("worker_name", saved_worker if saved_worker in all_workers else all_workers[0])
     default_idx = all_workers.index(current) if current in all_workers else 0
 
     selected = st.selectbox(
@@ -218,6 +232,10 @@ def page_login():
         st.session_state["worker_name"] = selected
         st.session_state["is_admin"] = (selected == ADMIN_NAME)
         st.session_state["page"] = "日報入力"
+        # ログアウトフラグを解除
+        st.session_state.pop("logged_out", None)
+        # Cookieに保存 (有効期限を約1年に設定)
+        cookie_manager.set("saved_worker_name", selected, key="set_worker_cookie", max_age=31536000)
         st.rerun()
 
     st.markdown("---")
@@ -261,10 +279,21 @@ def main():
     # DBを初期化（テーブルがなければ作成）
     db.initialize_db()
 
+    # Cookieマネージャーの初期化（※ stx.CookieManagerは1回の描画で1つだけインスタンス化する）
+    cookie_manager = stx.CookieManager()
+
     # ログイン前はログイン画面を表示
     if "worker_name" not in st.session_state:
-        page_login()
-        return
+        saved_worker = cookie_manager.get(cookie="saved_worker_name")
+        # Cookieに値があり、かつ「明示的にログアウトした直後」でない場合は自動ログイン
+        if saved_worker and saved_worker in _get_all_workers() and not st.session_state.get("logged_out"):
+            st.session_state["worker_name"] = saved_worker
+            st.session_state["is_admin"] = (saved_worker == ADMIN_NAME)
+            st.session_state["page"] = "日報入力"
+            st.rerun()
+        else:
+            page_login(cookie_manager)
+            return
 
     worker_name = st.session_state["worker_name"]
     is_admin = st.session_state.get("is_admin", False)
@@ -295,6 +324,9 @@ def main():
             del st.session_state["worker_name"]
             st.session_state.pop("is_admin", None)
             st.session_state.pop("page", None)
+            # Cookieを削除し、自動ログインを防ぐフラグを立てる
+            cookie_manager.delete("saved_worker_name", key="del_worker_cookie")
+            st.session_state["logged_out"] = True
             st.rerun()
 
     # ── 画面ルーティング ──────────────────────────

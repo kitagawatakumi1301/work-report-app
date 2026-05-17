@@ -10,7 +10,7 @@ database.py
 
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 
@@ -308,6 +308,31 @@ def delete_report(report_id: int) -> bool:
     return success
 
 
+def _time_to_minutes(value: str) -> int:
+    hour, minute = map(int, value.split(":"))
+    return hour * 60 + minute
+
+
+def _date_candidates(work_date: str) -> list:
+    base = datetime.strptime(work_date, "%Y-%m-%d").date()
+    return [
+        (base - timedelta(days=1)).strftime("%Y-%m-%d"),
+        base.strftime("%Y-%m-%d"),
+        (base + timedelta(days=1)).strftime("%Y-%m-%d"),
+    ]
+
+
+def _interval_minutes(row: dict, base_date: str) -> tuple:
+    base = datetime.strptime(base_date, "%Y-%m-%d").date()
+    row_date = datetime.strptime(row["work_date"], "%Y-%m-%d").date()
+    day_offset = (row_date - base).days * 24 * 60
+    start = day_offset + _time_to_minutes(row["start_time"])
+    end = day_offset + _time_to_minutes(row["end_time"])
+    if end <= start:
+        end += 24 * 60
+    return start, end
+
+
 def check_overlap(
     worker_name: str,
     work_date: str,
@@ -317,28 +342,38 @@ def check_overlap(
 ) -> list:
     """
     時間帯が重複する既存の日報を検索する。
+    終了時刻が開始時刻より前の場合は、翌日終了として判定する。
     """
     conn = get_connection()
     cursor = conn.cursor()
 
+    dates = _date_candidates(work_date)
+    placeholders = ", ".join(["?"] * len(dates))
     query = _q("""
         SELECT * FROM work_reports
         WHERE worker_name = ?
-          AND work_date   = ?
+          AND work_date   IN ({placeholders})
           AND deleted     = 0
-          AND start_time  < ?
-          AND end_time    > ?
-    """)
-    params = [worker_name, work_date, end_time, start_time]
+    """.format(placeholders=placeholders))
+    params = [worker_name] + dates
 
     if exclude_id is not None:
         query += _q(" AND id != ?")
         params.append(exclude_id)
 
     cursor.execute(query, params)
-    rows = _fetchall(cursor)
+    candidates = _fetchall(cursor)
     conn.close()
-    return rows
+
+    new_start, new_end = _interval_minutes(
+        {"work_date": work_date, "start_time": start_time, "end_time": end_time},
+        work_date,
+    )
+    return [
+        row for row in candidates
+        if _interval_minutes(row, work_date)[0] < new_end
+        and _interval_minutes(row, work_date)[1] > new_start
+    ]
 
 
 # ─────────────────────────────────────────
@@ -353,7 +388,7 @@ def get_summary_monthly_user_hours() -> list:
         SELECT
             substr(work_date, 1, 7) AS month,
             worker_name,
-            ROUND(CAST(SUM(hours) AS NUMERIC), 1) AS total_hours
+            SUM(hours) AS total_hours
         FROM work_reports
         WHERE deleted = 0
         GROUP BY substr(work_date, 1, 7), worker_name
@@ -374,7 +409,7 @@ def get_summary_monthly_user_process_hours() -> list:
             worker_name,
             process_id,
             process_name,
-            ROUND(CAST(SUM(hours) AS NUMERIC), 1) AS total_hours
+            SUM(hours) AS total_hours
         FROM work_reports
         WHERE deleted = 0
         GROUP BY substr(work_date, 1, 7), worker_name, process_id, process_name
@@ -434,7 +469,7 @@ def get_summary_fr_hours() -> list:
             worker_name,
             process_id,
             process_name,
-            ROUND(CAST(SUM(hours) AS NUMERIC), 1) AS total_hours
+            SUM(hours) AS total_hours
         FROM work_reports
         WHERE deleted = 0
           AND process_type = 'FR'
@@ -455,7 +490,7 @@ def get_summary_process_hours() -> list:
             substr(work_date, 1, 7) AS month,
             process_id,
             process_name,
-            ROUND(CAST(SUM(hours) AS NUMERIC), 1) AS total_hours
+            SUM(hours) AS total_hours
         FROM work_reports
         WHERE deleted = 0
         GROUP BY substr(work_date, 1, 7), process_id, process_name

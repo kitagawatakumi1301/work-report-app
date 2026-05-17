@@ -76,7 +76,34 @@ def get_process_type(process_id: str) -> str:
 
 
 def calc_hours(start: time, end: time) -> float:
-    return ((end.hour * 60 + end.minute) - (start.hour * 60 + start.minute)) / 60.0
+    start_minutes = start.hour * 60 + start.minute
+    end_minutes = end.hour * 60 + end.minute
+    if end_minutes < start_minutes:
+        end_minutes += 24 * 60
+    return (end_minutes - start_minutes) / 60.0
+
+
+def format_duration(hours) -> str:
+    try:
+        total_minutes = int(round(float(hours) * 60))
+    except (TypeError, ValueError):
+        return ""
+
+    sign = "-" if total_minutes < 0 else ""
+    total_minutes = abs(total_minutes)
+    hour_part, minute_part = divmod(total_minutes, 60)
+
+    if hour_part and minute_part:
+        return f"{sign}{hour_part}時間{minute_part}分"
+    if hour_part:
+        return f"{sign}{hour_part}時間"
+    return f"{sign}{minute_part}分"
+
+
+def format_time_span(start: time, end: time) -> str:
+    if end < start:
+        return f"{start.strftime('%H:%M')} 〜 翌日{end.strftime('%H:%M')}"
+    return f"{start.strftime('%H:%M')} 〜 {end.strftime('%H:%M')}"
 
 
 def get_process_info_by_label(label: str, process_list: list) -> tuple:
@@ -127,15 +154,12 @@ def page_input(worker_name: str, process_list: list, team_list: list, work_place
         end_time_val = st.time_input("作業終了時刻 *", value=time(17, 0), step=1800)
 
     # 作業時間プレビュー
-    if end_time_val > start_time_val:
+    if end_time_val != start_time_val:
         hours = calc_hours(start_time_val, end_time_val)
-        st.success(f"⏱ 作業時間：{hours:.1f}時間　（{start_time_val.strftime('%H:%M')} 〜 {end_time_val.strftime('%H:%M')}）")
+        st.success(f"⏱ 作業時間：{format_duration(hours)}　（{format_time_span(start_time_val, end_time_val)}）")
     elif end_time_val == start_time_val:
         hours = 0.0
         st.warning("開始時刻と終了時刻が同じです。")
-    else:
-        hours = 0.0
-        st.error("❌ 終了時刻が開始時刻より前になっています。")
 
     note = st.text_area("備考", placeholder="特記事項があれば入力してください")
     st.markdown("---")
@@ -145,8 +169,8 @@ def page_input(worker_name: str, process_list: list, team_list: list, work_place
         errors = []
         if not work_date:
             errors.append("作業日を入力してください。")
-        if end_time_val <= start_time_val:
-            errors.append("終了時刻は開始時刻より後にしてください。")
+        if end_time_val == start_time_val:
+            errors.append("開始時刻と終了時刻は別の時刻にしてください。")
         if hours <= 0:
             errors.append("作業時間が0以下です。時刻を確認してください。")
         if errors:
@@ -166,7 +190,7 @@ def page_input(worker_name: str, process_list: list, team_list: list, work_place
             msgs = [f"・{o['work_date']} {o['start_time']}〜{o['end_time']} ({o['process_id']} {o['process_name']})" for o in overlaps]
             st.warning(
                 f"⚠️ **時間帯が重複しています**\n\n"
-                f"{work_date.strftime('%m月%d日')} {start_str}〜{end_str} と重複している登録：\n\n"
+                f"{work_date.strftime('%m月%d日')} {format_time_span(start_time_val, end_time_val)} と重複している登録：\n\n"
                 + "\n".join(msgs)
                 + "\n\n重複登録すると時給・交通費の二重計上が発生する可能性があります。"
             )
@@ -264,8 +288,9 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
 
     disp = fdf[["id", "work_date", "team", "process_id", "process_name",
                 "start_time", "end_time", "hours", "work_place", "note"]].copy()
+    disp["hours"] = disp["hours"].apply(format_duration)
     disp.columns = ["ID", "作業日", "班", "工程ID", "工程名",
-                    "開始", "終了", "時間(h)", "場所", "備考"]
+                    "開始", "終了", "作業時間", "場所", "備考"]
     st.markdown(f"**{len(disp)} 件**")
     st.dataframe(disp, use_container_width=True, hide_index=True)
 
@@ -352,12 +377,12 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
             h_e, m_e = map(int, rec["end_time"].split(":"))
             new_start = st.time_input("開始時刻", value=time(h_s, m_s), step=1800)
             new_end   = st.time_input("終了時刻", value=time(h_e, m_e), step=1800)
-        if new_end > new_start:
+        if new_end != new_start:
             new_hours = calc_hours(new_start, new_end)
-            st.success(f"⏱ 作業時間：{new_hours:.1f}時間")
+            st.success(f"⏱ 作業時間：{format_duration(new_hours)}　（{format_time_span(new_start, new_end)}）")
         else:
             new_hours = 0.0
-            st.error("❌ 終了時刻が開始時刻より前です。")
+            st.error("開始時刻と終了時刻が同じです。")
         new_note = st.text_area("備考", value=rec.get("note", "") or "")
 
         c_save, c_cancel = st.columns(2)
@@ -371,8 +396,8 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
             st.rerun()
 
         if btn_save:
-            if new_end <= new_start:
-                st.error("終了時刻を開始時刻より後に設定してください。")
+            if new_end == new_start:
+                st.error("開始時刻と終了時刻は別の時刻にしてください。")
                 return
             new_proc_id, new_proc_name = get_process_info_by_label(new_proc_label, process_list)
             new_proc_type = get_process_type(new_proc_id)
@@ -469,12 +494,13 @@ def page_admin():
     # ── 全日報一覧
     disp_cols = ["id", "work_date", "worker_name", "team", "process_id", "process_name",
                  "start_time", "end_time", "hours", "work_place", "note", "created_at", "updated_at"]
-    fdf_disp = fdf[disp_cols].sort_values(sort_col_key, ascending=sort_asc)
+    fdf_disp = fdf[disp_cols].sort_values(sort_col_key, ascending=sort_asc).copy()
+    fdf_disp["hours"] = fdf_disp["hours"].apply(format_duration)
     st.markdown(f"### 全作業日報一覧　({len(fdf_disp)} 件)")
     st.dataframe(fdf_disp.rename(columns={
         "id": "ID", "work_date": "作業日", "worker_name": "作業者", "team": "班",
         "process_id": "工程ID", "process_name": "工程名",
-        "start_time": "開始", "end_time": "終了", "hours": "時間(h)",
+        "start_time": "開始", "end_time": "終了", "hours": "作業時間",
         "work_place": "場所", "note": "備考",
         "created_at": "登録日時", "updated_at": "更新日時",
     }), use_container_width=True, hide_index=True)
@@ -552,7 +578,8 @@ def page_admin():
         data_a = _cached_summary_monthly_user_hours()
         if data_a:
             dfa = pd.DataFrame(data_a)
-            dfa.columns = ["月", "作業者", "合計時間(h)"]
+            dfa.columns = ["月", "作業者", "合計時間"]
+            dfa["合計時間"] = dfa["合計時間"].apply(format_duration)
             # 上部フィルターを適用
             if sel_month != "すべて":
                 dfa = dfa[dfa["月"] == sel_month]
@@ -568,7 +595,8 @@ def page_admin():
         data_b = _cached_summary_monthly_user_process_hours()
         if data_b:
             dfb = pd.DataFrame(data_b)
-            dfb.columns = ["月", "作業者", "工程ID", "工程名", "合計時間(h)"]
+            dfb.columns = ["月", "作業者", "工程ID", "工程名", "合計時間"]
+            dfb["合計時間"] = dfb["合計時間"].apply(format_duration)
             if sel_month != "すべて":
                 dfb = dfb[dfb["月"] == sel_month]
             if sel_worker != "すべて":
@@ -612,7 +640,8 @@ def page_admin():
         data_d = _cached_summary_fr_hours()
         if data_d:
             dfd = pd.DataFrame(data_d)
-            dfd.columns = ["月", "作業者", "工程ID", "工程名", "FR合計時間(h)"]
+            dfd.columns = ["月", "作業者", "工程ID", "工程名", "FR合計時間"]
+            dfd["FR合計時間"] = dfd["FR合計時間"].apply(format_duration)
             if sel_month != "すべて":
                 dfd = dfd[dfd["月"] == sel_month]
             if sel_worker != "すべて":
@@ -629,7 +658,8 @@ def page_admin():
         data_e = _cached_summary_process_hours()
         if data_e:
             dfe = pd.DataFrame(data_e)
-            dfe.columns = ["月", "工程ID", "工程名", "合計時間(h)"]
+            dfe.columns = ["月", "工程ID", "工程名", "合計時間"]
+            dfe["合計時間"] = dfe["合計時間"].apply(format_duration)
             if sel_month != "すべて":
                 dfe = dfe[dfe["月"] == sel_month]
             if sel_proc != "すべて":
@@ -645,7 +675,9 @@ def page_admin():
     st.markdown("### 📤 データ出力")
 
     # CSV（全日報）
-    csv_bytes = to_csv_bytes(fdf[disp_cols])
+    export_reports = fdf[disp_cols].copy()
+    export_reports["hours"] = export_reports["hours"].apply(format_duration)
+    csv_bytes = to_csv_bytes(export_reports)
     st.download_button(
         label="📄 全日報データをCSVでダウンロード",
         data=csv_bytes,
@@ -661,22 +693,24 @@ def page_admin():
         sheets = {}
 
         # シート名はExcelのシートタブに表示される名前（31文字以内）
-        sheets["全日報データ"] = fdf[disp_cols].rename(columns={
+        sheets["全日報データ"] = export_reports.rename(columns={
             "id": "ID", "work_date": "作業日", "worker_name": "作業者",
             "team": "班", "process_id": "工程ID", "process_name": "工程名",
-            "start_time": "開始時刻", "end_time": "終了時刻", "hours": "時間(h)",
+            "start_time": "開始時刻", "end_time": "終了時刻", "hours": "作業時間",
             "work_place": "作業場所", "note": "備考",
             "created_at": "登録日時", "updated_at": "更新日時",
         })
 
         if data_a:
             tmp = pd.DataFrame(data_a)
-            tmp.columns = ["月", "作業者", "合計時間(h)"]
+            tmp.columns = ["月", "作業者", "合計時間"]
+            tmp["合計時間"] = tmp["合計時間"].apply(format_duration)
             sheets["A_月別作業者別"] = tmp
 
         if data_b:
             tmp = pd.DataFrame(data_b)
-            tmp.columns = ["月", "作業者", "工程ID", "工程名", "合計時間(h)"]
+            tmp.columns = ["月", "作業者", "工程ID", "工程名", "合計時間"]
+            tmp["合計時間"] = tmp["合計時間"].apply(format_duration)
             sheets["B_月別作業者工程別"] = tmp
 
         if data_c:
@@ -686,12 +720,14 @@ def page_admin():
 
         if data_d:
             tmp = pd.DataFrame(data_d)
-            tmp.columns = ["月", "作業者", "工程ID", "工程名", "FR合計時間(h)"]
+            tmp.columns = ["月", "作業者", "工程ID", "工程名", "FR合計時間"]
+            tmp["FR合計時間"] = tmp["FR合計時間"].apply(format_duration)
             sheets["D_FR工程時間"] = tmp
 
         if data_e:
             tmp = pd.DataFrame(data_e)
-            tmp.columns = ["月", "工程ID", "工程名", "合計時間(h)"]
+            tmp.columns = ["月", "工程ID", "工程名", "合計時間"]
+            tmp["合計時間"] = tmp["合計時間"].apply(format_duration)
             sheets["E_工程ID別時間"] = tmp
 
         return to_excel_bytes(sheets)
