@@ -600,24 +600,27 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
     }
 
     /* マーカー隣接セレクタによる、スマホ用編集ボタンの完全非表示化 */
-    .mobile-btn-marker {
+    div[data-testid="stElementContainer"]:has(.mobile-btn-marker) {
         display: none !important;
     }
-    div:has(> .mobile-btn-marker) {
+    div[data-testid="stElementContainer"]:has(.mobile-btn-marker) + div[data-testid="stElementContainer"] {
         display: none !important;
     }
-    div:has(> .mobile-btn-marker) + div {
+    div.element-container:has(.mobile-btn-marker) {
+        display: none !important;
+    }
+    div.element-container:has(.mobile-btn-marker) + div.element-container {
         display: none !important;
     }
 }
 
 /* スマホ表示（画面幅 <= 1024px）の時の制御 */
 @media (max-width: 1024px) {
-    /* マーカー要素自体を隠す（ボタンは隠さない） */
-    .mobile-btn-marker {
+    /* マーカー要素が入っている要素を隠す（ボタンは隠さない） */
+    div[data-testid="stElementContainer"]:has(.mobile-btn-marker) {
         display: none !important;
     }
-    div:has(> .mobile-btn-marker) {
+    div.element-container:has(.mobile-btn-marker) {
         display: none !important;
     }
 
