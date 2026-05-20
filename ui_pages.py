@@ -664,7 +664,7 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
     
     .mobile-card-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1.7fr 0.8fr; /* 班の表示エリアを広げて改行を防ぐ */
         gap: 8px;
         margin-bottom: 8px;
     }
