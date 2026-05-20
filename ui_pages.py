@@ -629,10 +629,102 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7
     color: #1E293B;
 }
 
-/* スマホ幅（最大768px）ではヘッダー項目名と罫線を完全に非表示にする */
+/* PC表示（画面幅 > 768px）の時の制御 */
+@media (min-width: 769px) {
+    /* スマホ用の要素をPCでは完全に隠す */
+    .mobile-history-card,
+    .mobile-edit-btn-wrapper,
+    .mobile-history-hr {
+        display: none !important;
+    }
+}
+
+/* スマホ表示（画面幅 <= 768px）の時の制御 */
 @media (max-width: 768px) {
+    /* PC用の7カラム履歴テーブルおよび区切り線をスマホでは完全に隠す */
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) {
+        display: none !important;
+    }
+    .pc-history-hr {
+        display: none !important;
+    }
     .history-header-grid, .history-header-hr {
         display: none !important;
+    }
+    
+    /* スマホ用カードの美しいデザイン */
+    .mobile-history-card {
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 8px;
+        margin-bottom: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+    
+    /* 日付を1.5倍にする */
+    .mobile-card-date {
+        font-size: 1.25rem !important; /* 標準(0.85rem)の約1.5倍 */
+        font-weight: bold !important;
+        color: #1E293B !important;
+        margin-bottom: 12px !important;
+        border-bottom: 2px solid #3B82F6;
+        padding-bottom: 6px;
+    }
+    
+    .mobile-card-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    
+    .mobile-card-row {
+        margin-bottom: 6px;
+        font-size: 0.9rem !important;
+        color: #334155;
+        line-height: 1.4 !important;
+    }
+    
+    .mobile-card-label {
+        font-weight: bold;
+        color: #64748B;
+        margin-right: 6px;
+    }
+    
+    .mobile-card-note {
+        word-break: break-all;
+        white-space: pre-wrap;
+        background: #F1F5F9;
+        padding: 6px 10px;
+        border-radius: 6px;
+        display: block;
+        margin-top: 4px;
+        border: 1px solid #E2E8F0;
+    }
+    
+    /* スマホ用の「上記の日報を編集する」ボタンのスタイル調整 */
+    .mobile-edit-btn-wrapper {
+        margin-top: 4px;
+        margin-bottom: 16px;
+        padding: 0 4px;
+    }
+    .mobile-edit-btn-wrapper div.stButton > button {
+        background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+        color: white !important;
+        border: none !important;
+        font-size: 0.95rem !important;
+        font-weight: bold !important;
+        height: 42px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2) !important;
+        transition: all 0.2s ease !important;
+    }
+    .mobile-edit-btn-wrapper div.stButton > button:hover {
+        background: linear-gradient(135deg, #1D4ED8, #1E40AF) !important;
+        box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3) !important;
+        transform: translateY(-1px) !important;
     }
 }
 </style>
@@ -656,6 +748,7 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7
     )
 
     for idx, row in fdf.iterrows():
+        # --- 1. PC用の行（7カラム） ---
         with st.container():
             r_cols = st.columns([0.8, 1.2, 1.2, 2.0, 2.2, 0.9, 2.5])
             with r_cols[0]:
@@ -677,7 +770,41 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7
             with r_cols[6]:
                 st.markdown(row.get('note') or "")
             
-            st.markdown("<hr style='margin: 0.2rem 0; border-color: #E2E8F0;' />", unsafe_allow_html=True)
+            # PC用の区切り線（スマホでは非表示）
+            st.markdown("<hr class='pc-history-hr' style='margin: 0.2rem 0; border-color: #E2E8F0;' />", unsafe_allow_html=True)
+
+        # --- 2. スマホ用のカード型行 ---
+        with st.container():
+            duration_str = format_duration(row['hours'])
+            note_val = row.get('note') or "（なし）"
+            
+            card_html = f"""
+            <div class="mobile-history-card">
+                <div class="mobile-card-date">📅 {row['work_date']}</div>
+                <div class="mobile-card-grid">
+                    <div><span class="mobile-card-label">班:</span> {row['team']}</div>
+                    <div><span class="mobile-card-label">場所:</span> {row['work_place']}</div>
+                </div>
+                <div class="mobile-card-row"><span class="mobile-card-label">工程:</span> {row['process_id']} {row['process_name']}</div>
+                <div class="mobile-card-row"><span class="mobile-card-label">時間:</span> {row['start_time']}〜{row['end_time']} ({duration_str})</div>
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">備考:</span>
+                    <span class="mobile-card-note">{note_val}</span>
+                </div>
+            </div>
+            """
+            st.markdown(card_html, unsafe_allow_html=True)
+            
+            # 「上記の日報を編集する」ボタン
+            st.markdown('<div class="mobile-edit-btn-wrapper">', unsafe_allow_html=True)
+            if st.button("📝 上記の日報を編集する", key=f"btn_edit_row_mobile_{row['id']}", use_container_width=True):
+                st.session_state["h_selected_id"] = int(row["id"])
+                st.session_state["h_action"] = "編集する"
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # スマホ用の区切り線
+            st.markdown("<hr class='mobile-history-hr' style='margin: 0.8rem 0; border-color: #E2E8F0;' />", unsafe_allow_html=True)
 
 
 
