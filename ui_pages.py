@@ -613,19 +613,47 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7
     padding: 0px 4px !important;
     line-height: 1 !important;
 }
+
+/* PC表示用のグリッドヘッダー */
+.history-header-grid {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr 1.2fr 2.0fr 2.2fr 0.9fr 2.5fr;
+    gap: 1rem;
+    width: 100%;
+    align-items: center;
+    padding-bottom: 4px;
+}
+.history-header-grid > div {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #1E293B;
+}
+
+/* スマホ幅（最大768px）ではヘッダー項目名と罫線を完全に非表示にする */
+@media (max-width: 768px) {
+    .history-header-grid, .history-header-hr {
+        display: none !important;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
-    # PC/スマホ共通のコンパクトな7列ヘッダー（絵文字なし）
-    h_cols = st.columns([0.8, 1.2, 1.2, 2.0, 2.2, 0.9, 2.5])
-    h_cols[0].markdown("**操作**")
-    h_cols[1].markdown("**作業日**")
-    h_cols[2].markdown("**班**")
-    h_cols[3].markdown("**工程**")
-    h_cols[4].markdown("**時間**")
-    h_cols[5].markdown("**場所**")
-    h_cols[6].markdown("**備考**")
-    st.markdown("<hr style='margin: 0.2rem 0; border-color: #CBD5E1;' />", unsafe_allow_html=True)
+    # PC表示時は st.columns と同じ比率で並び、スマホ表示時は非表示になるレスポンシブなヘッダー
+    st.markdown(
+        """
+        <div class="history-header-grid">
+            <div>操作</div>
+            <div>作業日</div>
+            <div>班</div>
+            <div>工程</div>
+            <div>時間</div>
+            <div>場所</div>
+            <div>備考</div>
+        </div>
+        <hr class="history-header-hr" style='margin: 0.2rem 0; border-color: #CBD5E1;' />
+        """,
+        unsafe_allow_html=True
+    )
 
     for idx, row in fdf.iterrows():
         with st.container():
