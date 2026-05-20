@@ -770,7 +770,7 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
             
             card_html = f"""
             <div class="mobile-history-card">
-                <div class="mobile-card-date">📅 {row['work_date']}</div>
+                <div class="mobile-card-date">🗓️ {row['work_date']}</div>
                 <div class="mobile-card-grid">
                     <div><span class="mobile-card-label">班:</span> {row['team']}</div>
                     <div><span class="mobile-card-label">場所:</span> {row['work_place']}</div>
