@@ -358,52 +358,38 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
             return
 
         # 画面を最上部にスクロールさせるCORS対応・安全なリトライ型JavaScriptインジェクション
+        # ※Markdownのインデントによる意図せぬコードブロック化を防ぐため、文字列の左端のインデントを完全に排除しています。
         st.markdown(
-            """
-            <img src="x" style="display:none;" onerror='
-                (function() {
-                    function resetScroll() {
-                        var selectors = [
-                            ".main",
-                            "div[data-testid=\"stAppViewContainer\"]",
-                            "div.block-container"
-                        ];
-                        
-                        // 1. windowオブジェクトのスクロールリセット
-                        try {
-                            window.scrollTo(0, 0);
-                        } catch(e) {}
-                        
-                        try {
-                            document.documentElement.scrollTop = 0;
-                            document.body.scrollTop = 0;
-                        } catch(e) {}
-
-                        // 2. Streamlit内部コンテナ要素のスクロールリセット
-                        selectors.forEach(function(sel) {
-                            try {
-                                var el = document.querySelector(sel);
-                                if (el) {
-                                    el.scrollTop = 0;
-                                    if (typeof el.scrollTo === "function") {
-                                        el.scrollTo(0, 0);
-                                    }
-                                }
-                            } catch(e) {}
-                        });
+            """<img src="x" style="display:none;" onerror='
+(function() {
+    function resetScroll() {
+        var selectors = [".main", "div[data-testid=\\"stAppViewContainer\\"]", "div.block-container"];
+        try { window.scrollTo(0, 0); } catch(e) {}
+        try {
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+        } catch(e) {}
+        selectors.forEach(function(sel) {
+            try {
+                var el = document.querySelector(sel);
+                if (el) {
+                    el.scrollTop = 0;
+                    if (typeof el.scrollTo === "function") {
+                        el.scrollTo(0, 0);
                     }
-
-                    // 描画遅延やブラウザの自動スクロール復元に対抗するため、時間差で計6回実行する
-                    resetScroll();
-                    setTimeout(resetScroll, 10);
-                    setTimeout(resetScroll, 50);
-                    setTimeout(resetScroll, 100);
-                    setTimeout(resetScroll, 300);
-                    setTimeout(resetScroll, 600);
-                    setTimeout(resetScroll, 1000);
-                })();
-            '>
-            """,
+                }
+            } catch(e) {}
+        });
+    }
+    resetScroll();
+    setTimeout(resetScroll, 10);
+    setTimeout(resetScroll, 50);
+    setTimeout(resetScroll, 100);
+    setTimeout(resetScroll, 300);
+    setTimeout(resetScroll, 600);
+    setTimeout(resetScroll, 1000);
+})();
+'>""",
             unsafe_allow_html=True
         )
 
