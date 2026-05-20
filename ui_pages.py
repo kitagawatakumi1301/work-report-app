@@ -229,6 +229,8 @@ def page_input(worker_name: str, process_list: list, team_list: list, work_place
         default_team = "4.大根布（藤島）"
     elif any(name in worker_name for name in ["角田", "山村", "寺崎", "越野", "深山"]):
         default_team = "5.鶴が丘ほか（角田）"
+    elif "今村" in worker_name:
+        default_team = "99作業員"
 
     default_team_idx = 0
     if default_team and default_team in team_list:
