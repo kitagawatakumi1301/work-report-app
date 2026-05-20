@@ -446,41 +446,13 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
                     st.rerun()
         return
 
-    # ── 通常の履歴表示画面（フィルタ＋一覧）
+    # ── 通常の履歴表示画面（一覧のみ、フィルターなし）
     rows = _cached_get_reports_by_worker(worker_name)
     if not rows:
         st.info("まだ日報が登録されていません。")
         return
 
-    df = pd.DataFrame(rows)
-
-    # ── フィルター
-    st.markdown("#### 🔍 フィルター")
-    fc1, fc2 = st.columns(2)
-    with fc1:
-        months = sorted(df["work_date"].str[:7].unique(), reverse=True)
-        sel_month = st.selectbox("月", ["すべて"] + list(months), key="h_month")
-    with fc2:
-        sel_proc = st.selectbox("工程ID", ["すべて"] + sorted(df["process_id"].unique()), key="h_proc")
-    fc3, fc4 = st.columns(2)
-    with fc3:
-        sel_team = st.selectbox("班", ["すべて"] + sorted(df["team"].unique()), key="h_team")
-    with fc4:
-        sel_place = st.selectbox("場所", ["すべて"] + sorted(df["work_place"].unique()), key="h_place")
-
-    fdf = df.copy()
-    if sel_month != "すべて":
-        fdf = fdf[fdf["work_date"].str[:7] == sel_month]
-    if sel_team != "すべて":
-        fdf = fdf[fdf["team"] == sel_team]
-    if sel_proc != "すべて":
-        fdf = fdf[fdf["process_id"] == sel_proc]
-    if sel_place != "すべて":
-        fdf = fdf[fdf["work_place"] == sel_place]
-
-    if fdf.empty:
-        st.info("フィルター条件に一致するデータがありません。")
-        return
+    fdf = pd.DataFrame(rows)
 
     st.markdown(f"**{len(fdf)} 件**")
 

@@ -668,6 +668,7 @@ def main():
             label = f"**{item}**" if is_current else item
             if st.button(label, key=f"nav_{item}", use_container_width=True):
                 st.session_state["page"] = item
+                st.session_state["should_close_sidebar"] = True
                 st.rerun()
 
         st.markdown("---")
@@ -675,6 +676,7 @@ def main():
             del st.session_state["worker_name"]
             st.session_state.pop("is_admin", None)
             st.session_state.pop("page", None)
+            st.session_state["should_close_sidebar"] = True
             # Cookieを削除し、自動ログインを防ぐフラグを立てる
             cookie_manager.delete("saved_worker_name", key="del_worker_cookie")
             st.session_state["logged_out"] = True
@@ -701,6 +703,28 @@ def main():
         page_admin()
     else:
         st.error("このページは表示できません。")
+
+    # ── モバイル環境で画面遷移後にサイドバーを自動的に閉じる ─────────────────
+    if st.session_state.get("should_close_sidebar", False):
+        st.session_state["should_close_sidebar"] = False  # フラグをリセット
+        js_code = """
+<img src="x" style="display:none;" onerror="
+    (function() {
+        var sidebar = document.querySelector('section[data-testid=\\'stSidebar\\']');
+        if (sidebar) {
+            var rect = sidebar.getBoundingClientRect();
+            var isMobile = (window.innerWidth <= 768 || document.documentElement.clientWidth <= 768);
+            if (isMobile && rect.left >= 0 && rect.width > 0) {
+                var closeBtn = sidebar.querySelector('[data-testid=\\'stSidebarCollapseButton\\']');
+                if (closeBtn) {
+                    closeBtn.click();
+                }
+            }
+        }
+    })();
+">
+"""
+        st.markdown(js_code, unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
