@@ -148,6 +148,36 @@ def page_input(worker_name: str, process_list: list, team_list: list, work_place
         unsafe_allow_html=True,
     )
 
+    # ── 重複確認ダイアログの表示モード
+    if st.session_state.get("show_overlap_warning"):
+        pending = st.session_state.get("pending_save")
+        if pending:
+            overlaps = db.check_overlap(
+                pending["worker_name"], pending["work_date"],
+                pending["start_time"], pending["end_time"]
+            )
+            msgs = [f"・{o['work_date']} {o['start_time']}〜{o['end_time']} ({o['process_id']} {o['process_name']})" for o in overlaps]
+            st.warning(
+                f"⚠️ **時間帯が重複しています**\n\n"
+                f"{pending['work_date']} {pending['start_time']}〜{pending['end_time']} と重複している登録：\n\n"
+                + "\n".join(msgs)
+                + "\n\n重複登録すると時給・交通費の二重計上が発生する可能性があります。"
+            )
+            col_a, col_b = st.columns(2)
+            with col_a:
+                if st.button("❌ 保存しない", use_container_width=True, key="btn_overlap_cancel"):
+                    st.session_state.pop("pending_save", None)
+                    st.session_state["show_overlap_warning"] = False
+                    st.info("保存をキャンセルしました。")
+                    st.rerun()
+            with col_b:
+                if st.button("⚠️ それでも保存する", use_container_width=True, type="primary", key="btn_overlap_confirm"):
+                    data = st.session_state.pop("pending_save", None)
+                    st.session_state["show_overlap_warning"] = False
+                    if data:
+                        _execute_save(data)
+            return
+
     process_labels = [p[0] for p in process_list]
 
     # ── 行1: 作業日・工程
@@ -218,28 +248,14 @@ def page_input(worker_name: str, process_list: list, team_list: list, work_place
         # ── 重複チェック（時間帯の重なりも検出）
         overlaps = db.check_overlap(worker_name, work_date_str, start_str, end_str)
         if overlaps:
-            msgs = [f"・{o['work_date']} {o['start_time']}〜{o['end_time']} ({o['process_id']} {o['process_name']})" for o in overlaps]
-            st.warning(
-                f"⚠️ **時間帯が重複しています**\n\n"
-                f"{work_date.strftime('%m月%d日')} {format_time_span(start_time_val, end_time_val)} と重複している登録：\n\n"
-                + "\n".join(msgs)
-                + "\n\n重複登録すると時給・交通費の二重計上が発生する可能性があります。"
-            )
             st.session_state["pending_save"] = dict(
                 worker_name=worker_name, work_date=work_date_str, team=team,
                 process_id=process_id, process_name=process_name, process_type=process_type,
                 start_time=start_str, end_time=end_str, hours=hours,
                 work_place=work_place, note=note,
             )
-            col_a, col_b = st.columns(2)
-            with col_a:
-                if st.button("❌ 保存しない", use_container_width=True):
-                    st.session_state.pop("pending_save", None)
-                    st.info("保存をキャンセルしました。")
-            with col_b:
-                if st.button("⚠️ それでも保存する", use_container_width=True):
-                    _execute_save(st.session_state.pop("pending_save"))
-            return
+            st.session_state["show_overlap_warning"] = True
+            st.rerun()
 
         # 重複なし → そのまま保存
         _execute_save(dict(
