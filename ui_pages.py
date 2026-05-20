@@ -215,10 +215,29 @@ def page_input(worker_name: str, process_list: list, team_list: list, work_place
         hours = 0.0
         st.warning("開始時刻と終了時刻が同じです。")
 
+    # ── 作業者名に応じたデフォルト班の決定（部分一致で柔軟に判定）
+    default_team = None
+    if "石野" in worker_name:
+        default_team = "0総括班"
+    elif "平石" in worker_name:
+        default_team = "1.室（平石）"
+    elif any(name in worker_name for name in ["森田", "北川", "竹中"]):
+        default_team = "2.西荒屋（森田）"
+    elif any(name in worker_name for name in ["寺田", "西野"]):
+        default_team = "3.宮坂（石野）"
+    elif "藤島" in worker_name:
+        default_team = "4.大根布（藤島）"
+    elif any(name in worker_name for name in ["角田", "山村", "寺崎", "越野", "深山"]):
+        default_team = "5.鶴が丘ほか（角田）"
+
+    default_team_idx = 0
+    if default_team and default_team in team_list:
+        default_team_idx = team_list.index(default_team)
+
     # ── 行3: 班・場所
     col5, col6 = st.columns(2)
     with col5:
-        team = st.selectbox("👥 班 *", options=team_list)
+        team = st.selectbox("👥 班 *", options=team_list, index=default_team_idx)
     with col6:
         work_place = st.selectbox("📍 作業場所 *", options=work_place_list)
 
