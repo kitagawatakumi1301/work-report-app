@@ -352,13 +352,13 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
         # 画面を最上部にスクロールさせるCORS対応・安全なリトライ型JavaScriptインジェクション
         st.markdown(
             """
-            <img src="x" style="display:none;" onerror="
+            <img src="x" style="display:none;" onerror='
                 (function() {
                     function resetScroll() {
                         var selectors = [
-                            '.main',
-                            'div[data-testid=\\'stAppViewContainer\\']',
-                            'div.block-container'
+                            ".main",
+                            "div[data-testid=\"stAppViewContainer\"]",
+                            "div.block-container"
                         ];
                         
                         // 1. windowオブジェクトのスクロールリセット
@@ -377,7 +377,7 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
                                 var el = document.querySelector(sel);
                                 if (el) {
                                     el.scrollTop = 0;
-                                    if (typeof el.scrollTo === 'function') {
+                                    if (typeof el.scrollTo === "function") {
                                         el.scrollTo(0, 0);
                                     }
                                 }
@@ -394,7 +394,7 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
                     setTimeout(resetScroll, 600);
                     setTimeout(resetScroll, 1000);
                 })();
-            ">
+            '>
             """,
             unsafe_allow_html=True
         )
