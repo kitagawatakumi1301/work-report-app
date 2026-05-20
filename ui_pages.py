@@ -641,8 +641,17 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7
 
 /* スマホ表示（画面幅 <= 768px）の時の制御 */
 @media (max-width: 768px) {
-    /* PC用の7カラム履歴テーブルおよび区切り線をスマホでは完全に隠す */
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) {
+    /* PC用の7カラム履歴テーブルおよびマーカー要素を確実に隠す */
+    .pc-row-marker {
+        display: none !important;
+    }
+    div:has(> .pc-row-marker) {
+        display: none !important;
+    }
+    div:has(> .pc-row-marker) + div {
+        display: none !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="column"]:nth-child(7)) {
         display: none !important;
     }
     .pc-history-hr {
@@ -750,6 +759,7 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7
     for idx, row in fdf.iterrows():
         # --- 1. PC用の行（7カラム） ---
         with st.container():
+            st.markdown('<div class="pc-row-marker"></div>', unsafe_allow_html=True)
             r_cols = st.columns([0.8, 1.2, 1.2, 2.0, 2.2, 0.9, 2.5])
             with r_cols[0]:
                 if st.button("編集", key=f"btn_edit_row_{row['id']}", use_container_width=True):
@@ -770,8 +780,8 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7
             with r_cols[6]:
                 st.markdown(row.get('note') or "")
             
-            # PC用の区切り線（スマホでは非表示）
-            st.markdown("<hr class='pc-history-hr' style='margin: 0.2rem 0; border-color: #E2E8F0;' />", unsafe_allow_html=True)
+            # PC用の区切り線（スマホでは非表示にするため pc-row-marker を付与）
+            st.markdown("<hr class='pc-row-marker pc-history-hr' style='margin: 0.2rem 0; border-color: #E2E8F0;' />", unsafe_allow_html=True)
 
         # --- 2. スマホ用のカード型行 ---
         with st.container():
