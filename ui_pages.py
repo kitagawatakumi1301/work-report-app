@@ -305,36 +305,44 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
     # セッションステート初期化
     if "h_selected_id" not in st.session_state:
         st.session_state["h_selected_id"] = None
-    if "h_action" not in st.session_state:
-        st.session_state["h_action"] = "✏️ 編集する"
     if "h_del_target_id" not in st.session_state:
         st.session_state["h_del_target_id"] = None
 
-    # ── フェーズ1: 削除確認画面（他の画面要素は隠す）
+    # ── フェーズ1: 削除確認画面（最優先）
     if st.session_state["h_del_target_id"] is not None:
         target_id = st.session_state["h_del_target_id"]
         rec = _cached_get_report_by_id(target_id)
         if rec is None:
+            st.error("対象の日報が見つかりません。")
             st.session_state["h_del_target_id"] = None
             st.rerun()
             return
 
+        st.markdown("### ⚠️ 日報の削除確認")
+        st.markdown("---")
         st.error(
-            f"「{rec['work_date']}　{rec['process_id']} {rec['process_name']}　"
-            f"{rec['start_time']}〜{rec['end_time']}」\n\n"
-            "この日報を削除しますか？削除すると元に戻せません。"
+            f"**以下の日報を完全に削除しますか？この操作は元に戻せません。**\n\n"
+            f"・**作業日**: {rec['work_date']}\n"
+            f"・**班**: {rec['team']}\n"
+            f"・**工程**: {rec['process_id']} {rec['process_name']}\n"
+            f"・**時間**: {rec['start_time']} 〜 {rec['end_time']} ({format_duration(rec['hours'])})\n"
+            f"・**場所**: {rec['work_place']}\n"
+            f"・**備考**: {rec.get('note') or ''}"
         )
-        cy, cn = st.columns(2)
-        with cy:
-            if st.button("🗑️ はい、削除します", type="primary", use_container_width=True, key="h_del_yes"):
+
+        c_del_yes, c_del_no = st.columns(2)
+        with c_del_yes:
+            if st.button("🗑️ はい、完全に削除します", type="primary", use_container_width=True, key="h_del_confirm_yes"):
                 if db.delete_report(target_id):
                     st.session_state["save_success_msg"] = "🗑️ 日報を削除しました。"
-                _clear_cache()
+                    _clear_cache()
+                else:
+                    st.error("削除に失敗しました。")
                 st.session_state["h_del_target_id"] = None
                 st.session_state["h_selected_id"] = None
                 st.rerun()
-        with cn:
-            if st.button("キャンセル", use_container_width=True, key="h_del_no"):
+        with c_del_no:
+            if st.button("キャンセル", use_container_width=True, key="h_del_confirm_no"):
                 st.session_state["h_del_target_id"] = None
                 st.rerun()
         return
@@ -399,70 +407,67 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
             unsafe_allow_html=True
         )
 
-        st.markdown("### ✏️ 日報の編集・削除")
-        action = st.radio("操作を選択してください",
-                          ["✏️ 編集する", "🗑️ 削除する"],
-                          horizontal=True, key="h_action")
+        st.markdown("### ✏️ 日報の編集")
         st.markdown("---")
 
-        if action == "✏️ 編集する":
-            st.markdown("##### 編集フォーム")
-            process_labels = [p[0] for p in process_list]
-            current_label = get_process_label_by_id(rec["process_id"], process_list)
-            col1, col2 = st.columns(2)
-            with col1:
-                new_date  = st.date_input("作業日", value=date.fromisoformat(rec["work_date"]))
-                new_team  = st.selectbox("班", team_list,
-                                         index=team_list.index(rec["team"]) if rec["team"] in team_list else 0)
-                new_place = st.selectbox("作業場所", work_place_list,
-                                         index=work_place_list.index(rec["work_place"]) if rec["work_place"] in work_place_list else 0)
-            with col2:
-                new_proc_label = st.selectbox("工程ID", process_labels,
-                                              index=process_labels.index(current_label) if current_label in process_labels else 0)
-                h_s, m_s = map(int, rec["start_time"].split(":"))
-                h_e, m_e = map(int, rec["end_time"].split(":"))
+        process_labels = [p[0] for p in process_list]
+        current_label = get_process_label_by_id(rec["process_id"], process_list)
+        col1, col2 = st.columns(2)
+        with col1:
+            new_date  = st.date_input("作業日", value=date.fromisoformat(rec["work_date"]))
+            new_team  = st.selectbox("班", team_list,
+                                     index=team_list.index(rec["team"]) if rec["team"] in team_list else 0)
+            new_place = st.selectbox("作業場所", work_place_list,
+                                     index=work_place_list.index(rec["work_place"]) if rec["work_place"] in work_place_list else 0)
+        with col2:
+            new_proc_label = st.selectbox("工程ID", process_labels,
+                                          index=process_labels.index(current_label) if current_label in process_labels else 0)
+            h_s, m_s = map(int, rec["start_time"].split(":"))
+            h_e, m_e = map(int, rec["end_time"].split(":"))
+            
+            time_options_edit = [f"{h:02d}:{m:02d}" for h in range(24) for m in (0, 30)]
+            start_str_init = f"{h_s:02d}:{m_s:02d}"
+            end_str_init = f"{h_e:02d}:{m_e:02d}"
+            
+            if start_str_init not in time_options_edit:
+                time_options_edit.append(start_str_init)
+                time_options_edit.sort()
+            if end_str_init not in time_options_edit:
+                time_options_edit.append(end_str_init)
+                time_options_edit.sort()
                 
-                time_options_edit = [f"{h:02d}:{m:02d}" for h in range(24) for m in (0, 30)]
-                start_str_init = f"{h_s:02d}:{m_s:02d}"
-                end_str_init = f"{h_e:02d}:{m_e:02d}"
-                
-                if start_str_init not in time_options_edit:
-                    time_options_edit.append(start_str_init)
-                    time_options_edit.sort()
-                if end_str_init not in time_options_edit:
-                    time_options_edit.append(end_str_init)
-                    time_options_edit.sort()
-                    
-                idx_start = time_options_edit.index(start_str_init)
-                idx_end = time_options_edit.index(end_str_init)
-                
-                new_start_str = st.selectbox("開始時刻", options=time_options_edit, index=idx_start)
-                new_end_str   = st.selectbox("終了時刻", options=time_options_edit, index=idx_end)
-                
-                new_start = time(*map(int, new_start_str.split(":")))
-                new_end   = time(*map(int, new_end_str.split(":")))
-            if new_end != new_start:
-                new_hours = calc_hours(new_start, new_end)
-                st.success(f"⏱ 作業時間：{format_duration(new_hours)}　（{format_time_span(new_start, new_end)}）")
+            idx_start = time_options_edit.index(start_str_init)
+            idx_end = time_options_edit.index(end_str_init)
+            
+            new_start_str = st.selectbox("開始時刻", options=time_options_edit, index=idx_start)
+            new_end_str   = st.selectbox("終了時刻", options=time_options_edit, index=idx_end)
+            
+            new_start = time(*map(int, new_start_str.split(":")))
+            new_end   = time(*map(int, new_end_str.split(":")))
+        if new_end != new_start:
+            new_hours = calc_hours(new_start, new_end)
+            st.success(f"⏱ 作業時間：{format_duration(new_hours)}　（{format_time_span(new_start, new_end)}）")
+        else:
+            new_hours = 0.0
+            st.error("開始時刻と終了時刻が同じです。")
+        new_note = st.text_area("備考", value=rec.get("note", "") or "")
+
+        c_save, c_cancel = st.columns(2)
+        with c_save:
+            btn_save = st.button("💾 保存する", type="primary", use_container_width=True, key="h_edit_save_btn")
+        with c_cancel:
+            btn_cancel = st.button("キャンセル", key="h_edit_cancel", use_container_width=True)
+
+        if btn_cancel:
+            st.session_state["h_selected_id"] = None
+            st.rerun()
+
+        if btn_save:
+            if new_end == new_start:
+                st.error("開始時刻と終了時刻は別の時刻にしてください。")
+            elif new_hours <= 0:
+                st.error("作業時間が0以下です。時刻を確認してください。")
             else:
-                new_hours = 0.0
-                st.error("開始時刻と終了時刻が同じです。")
-            new_note = st.text_area("備考", value=rec.get("note", "") or "")
-
-            c_save, c_cancel = st.columns(2)
-            with c_save:
-                btn_save = st.button("💾 保存する", type="primary", use_container_width=True)
-            with c_cancel:
-                btn_cancel = st.button("キャンセル", key="h_edit_cancel", use_container_width=True)
-
-            if btn_cancel:
-                st.session_state["h_selected_id"] = None
-                st.rerun()
-
-            if btn_save:
-                if new_end == new_start:
-                    st.error("開始時刻と終了時刻は別の時刻にしてください。")
-                    return
                 new_proc_id, new_proc_name = get_process_info_by_label(new_proc_label, process_list)
                 new_proc_type = get_process_type(new_proc_id)
                 update_data = dict(
@@ -477,6 +482,7 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
                 if overlaps:
                     msgs = [f"・{o['work_date']} {o['start_time']}〜{o['end_time']} ({o['process_id']})" for o in overlaps]
                     st.warning("⚠️ 時間帯が他の日報と重複しています：\n\n" + "\n".join(msgs))
+                
                 if db.update_report(rec["id"], update_data):
                     st.session_state["save_success_msg"] = "✅ 日報を更新しました。"
                     _clear_cache()
@@ -484,16 +490,38 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
                     st.rerun()
                 else:
                     st.error("更新に失敗しました。")
-        else:
-            c_del, c_cancel2 = st.columns(2)
-            with c_del:
-                if st.button("🗑️ 削除を確認する", type="secondary", use_container_width=True, key="h_del_confirm"):
-                    st.session_state["h_del_target_id"] = int(rec["id"])
-                    st.rerun()
-            with c_cancel2:
-                if st.button("キャンセル", use_container_width=True, key="h_del_cancel"):
-                    st.session_state["h_selected_id"] = None
-                    st.rerun()
+
+        # ── 赤背景の「削除する」エリア ─────────────────
+        st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+        st.markdown("---")
+        st.markdown(
+            """
+            <div style="background-color:#FEF2F2; padding:12px 16px; border-radius:10px; border:1px solid #FCA5A5; margin-bottom:12px;">
+                <span style="color:#991B1B; font-weight:bold; font-size:0.95rem;">⚠️ この日報の削除</span>
+                <p style="color:#7F1D1D; font-size:0.85rem; margin:4px 0 0 0;">
+                    この日報を完全に削除します。削除したデータは元に戻せません。
+                </p>
+            </div>
+            <style>
+            .delete-btn-box div.stButton > button {
+                background: linear-gradient(135deg, #EF4444, #DC2626) !important;
+                color: white !important;
+                border: none !important;
+            }
+            .delete-btn-box div.stButton > button:hover {
+                background: linear-gradient(135deg, #DC2626, #B91C1C) !important;
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35) !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        st.markdown('<div class="delete-btn-box">', unsafe_allow_html=True)
+        if st.button("🗑️ この日報を削除する", use_container_width=True, key="h_edit_delete_btn"):
+            st.session_state["h_del_target_id"] = int(rec["id"])
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
         return
 
     # ── 通常の履歴表示画面（一覧のみ、フィルターなし）
