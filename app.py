@@ -194,7 +194,300 @@ st.set_page_config(
     layout="wide",
 )
 
+# ============================================================
+# カスタムCSS（モバイルレスポンシブ対応）
+# ============================================================
+st.markdown("""
+<style>
+/* ────────────────────────────────────────────────────────────
+   Google Fonts 読み込み
+   ──────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
 
+/* ────────────────────────────────────────────────────────────
+   全体のベーススタイル
+   ──────────────────────────────────────────────────────────── */
+html, body, [class*="css"] {
+    font-family: 'Noto Sans JP', sans-serif !important;
+}
+
+/* メインコンテナの余白調整（モバイル時） */
+.main .block-container {
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+/* ────────────────────────────────────────────────────────────
+   ボタンのタッチフレンドリー化
+   ──────────────────────────────────────────────────────────── */
+.stButton > button {
+    min-height: 48px;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.stButton > button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    border: none;
+    color: white;
+}
+.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #1D4ED8, #1E40AF);
+}
+
+/* ────────────────────────────────────────────────────────────
+   入力フィールドのタッチ最適化
+   ──────────────────────────────────────────────────────────── */
+.stSelectbox > div > div,
+.stDateInput > div > div > input,
+.stTimeInput > div > div > input,
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+    min-height: 44px;
+    font-size: 1rem !important;
+    border-radius: 8px;
+}
+
+/* セレクトボックスのドロップダウン項目 */
+[data-baseweb="select"] [role="option"] {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+}
+
+/* ラベルの視認性向上 */
+.stSelectbox label,
+.stDateInput label,
+.stTimeInput label,
+.stTextInput label,
+.stTextArea label {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 4px;
+}
+
+/* ────────────────────────────────────────────────────────────
+   情報カード・アラートのスタイル改善
+   ──────────────────────────────────────────────────────────── */
+.stAlert {
+    border-radius: 10px;
+    border-left-width: 4px;
+}
+div[data-testid="stInfo"] {
+    background-color: #EFF6FF;
+    border-left-color: #2563EB;
+}
+div[data-testid="stSuccess"] {
+    background-color: #F0FDF4;
+    border-left-color: #16A34A;
+}
+div[data-testid="stWarning"] {
+    background-color: #FFFBEB;
+    border-left-color: #D97706;
+}
+div[data-testid="stError"] {
+    background-color: #FEF2F2;
+    border-left-color: #DC2626;
+}
+
+/* ────────────────────────────────────────────────────────────
+   タイトル・ヘッダーの改善
+   ──────────────────────────────────────────────────────────── */
+h1 {
+    font-weight: 700 !important;
+    color: #1E293B !important;
+    letter-spacing: -0.02em;
+}
+h2, h3, h4 {
+    font-weight: 600 !important;
+    color: #334155 !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+   サイドバーの改善
+   ──────────────────────────────────────────────────────────── */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #F8FAFC, #EFF6FF);
+    border-right: 1px solid #E2E8F0;
+}
+section[data-testid="stSidebar"] .stButton > button {
+    min-height: 48px;
+    font-size: 0.95rem;
+    border-radius: 8px;
+    margin-bottom: 4px;
+}
+
+/* ────────────────────────────────────────────────────────────
+   データテーブルの改善
+   ──────────────────────────────────────────────────────────── */
+.stDataFrame {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* ────────────────────────────────────────────────────────────
+   タブの改善
+   ──────────────────────────────────────────────────────────── */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 2px;
+}
+.stTabs [data-baseweb="tab"] {
+    min-height: 44px;
+    padding: 8px 16px;
+    font-weight: 500;
+    border-radius: 8px 8px 0 0;
+}
+
+/* ────────────────────────────────────────────────────────────
+   エクスパンダーの改善
+   ──────────────────────────────────────────────────────────── */
+.streamlit-expanderHeader {
+    min-height: 48px;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* ────────────────────────────────────────────────────────────
+   区切り線
+   ──────────────────────────────────────────────────────────── */
+hr {
+    border-color: #E2E8F0 !important;
+    margin: 1.5rem 0 !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+   ダウンロードボタン
+   ──────────────────────────────────────────────────────────── */
+.stDownloadButton > button {
+    min-height: 48px;
+    font-size: 1rem;
+    border-radius: 10px;
+    border: 2px solid #2563EB;
+    color: #2563EB;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+.stDownloadButton > button:hover {
+    background-color: #2563EB;
+    color: white;
+}
+
+/* ════════════════════════════════════════════════════════════
+   モバイルレスポンシブ（768px以下）
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    /* メインコンテナの余白を縮小 */
+    .main .block-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 1rem;
+        max-width: 100%;
+    }
+
+    /* 2列レイアウトを1列に */
+    div[data-testid="column"] {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+    }
+
+    /* タイトルのフォントサイズ縮小 */
+    h1 {
+        font-size: 1.5rem !important;
+    }
+    h2, h3 {
+        font-size: 1.15rem !important;
+    }
+    h4 {
+        font-size: 1rem !important;
+    }
+
+    /* ボタンをさらに大きく */
+    .stButton > button {
+        min-height: 52px;
+        font-size: 1.05rem;
+    }
+
+    /* 入力フィールドの拡大 */
+    .stSelectbox > div > div,
+    .stDateInput > div > div > input,
+    .stTimeInput > div > div > input,
+    .stTextInput > div > div > input {
+        min-height: 48px;
+        font-size: 1.05rem !important;
+    }
+
+    /* ドロップダウンの選択肢を大きく */
+    [data-baseweb="select"] [role="option"] {
+        min-height: 48px;
+        padding: 12px 14px;
+        font-size: 1rem;
+    }
+
+    /* テーブルフォントサイズ */
+    .stDataFrame table {
+        font-size: 0.8rem;
+    }
+
+    /* タブを横スクロール可能に */
+    .stTabs [data-baseweb="tab-list"] {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+    }
+    .stTabs [data-baseweb="tab"] {
+        min-height: 40px;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+
+    /* サイドバーボタン */
+    section[data-testid="stSidebar"] .stButton > button {
+        min-height: 52px;
+        font-size: 1rem;
+    }
+
+    /* ラジオボタンを大きく */
+    .stRadio > div {
+        gap: 8px;
+    }
+    .stRadio label {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        font-size: 1rem;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════
+   さらに小さい画面（480px以下）
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+    .main .block-container {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    h1 {
+        font-size: 1.3rem !important;
+    }
+
+    /* テーブルはさらに小さく */
+    .stDataFrame table {
+        font-size: 0.75rem;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 
@@ -204,8 +497,23 @@ st.set_page_config(
 # ============================================================
 def page_login(cookie_manager):
     """利用者選択画面。session_stateに作業者名を保存する。"""
-    st.title("🗾 地籍調査日報アプリ")
-    st.markdown("### 利用者を選択してください")
+
+    # ── アプリヘッダー（カード風デザイン）
+    st.markdown("""
+    <div style="text-align:center;padding:2rem 1rem 1rem;">
+        <div style="font-size:3rem;margin-bottom:0.5rem;">🗾</div>
+        <h1 style="font-size:1.8rem;margin:0;color:#1E293B;">地籍調査日報アプリ</h1>
+        <p style="color:#6B7280;font-size:0.9rem;margin-top:0.3rem;">作業日報の入力・管理</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="background:white;border-radius:12px;padding:4px;
+                box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:1rem;">
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### 👤 利用者を選択してください")
 
     # 固定リスト＋追加作業者を結合
     all_workers = _get_all_workers()
@@ -223,7 +531,9 @@ def page_login(cookie_manager):
         key="login_select",
     )
 
-    if st.button("この名前でログイン", type="primary", use_container_width=True):
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+    if st.button("✅ この名前でログイン", type="primary", use_container_width=True):
         st.session_state["worker_name"] = selected
         st.session_state["is_admin"] = (selected == ADMIN_NAME)
         st.session_state["page"] = "日報入力"
@@ -238,7 +548,7 @@ def page_login(cookie_manager):
     # ── 作業者の追加
     with st.expander("➕ 作業者を追加する"):
         new_name = st.text_input("追加する作業者名（フルネーム）", key="new_worker_input")
-        if st.button("追加する", key="btn_add_worker"):
+        if st.button("追加する", key="btn_add_worker", use_container_width=True):
             result = _save_extra_worker(new_name)
             if result == "ok":
                 st.success(f"✅ 「{new_name.strip()}」を作業者リストに追加しました。")
@@ -257,12 +567,12 @@ def page_login(cookie_manager):
                 options=extra_workers,
                 key="del_worker_select",
             )
-            if st.button("削除する", key="btn_del_worker", type="secondary"):
+            if st.button("削除する", key="btn_del_worker", type="secondary", use_container_width=True):
                 if _delete_extra_worker(del_target):
                     st.success(f"✅ 「{del_target}」をリストから削除しました。")
                     st.rerun()
 
-    st.caption("※ 同じセッション内では次回以降も自動的にこの名前が使われます。")
+    st.caption("※ 次回以降は自動的に前回の名前でログインされます。")
 
 
 # ============================================================
@@ -270,6 +580,52 @@ def page_login(cookie_manager):
 # ============================================================
 def main():
     """アプリのエントリーポイント。ログイン状態とサイドバーナビを管理する。"""
+
+    # モバイルでの自動キーボード起動を抑制するJavaScript
+    st.components.v1.html(
+        """
+        <script>
+        const doc = window.parent.document;
+        
+        function applyMobileFriendly() {
+            // 1. セレクトボックス内の検索入力欄を readonly にする（キーボードを抑制）
+            const selectInputs = doc.querySelectorAll('div[data-baseweb="select"] input');
+            selectInputs.forEach(input => {
+                if (!input.hasAttribute('readonly')) {
+                    input.setAttribute('readonly', 'true');
+                    input.setAttribute('inputmode', 'none');
+                    input.style.caretColor = 'transparent';
+                }
+            });
+        
+            // 2. 日付入力欄を readonly にする
+            const dateInputs = doc.querySelectorAll('div.stDateInput input');
+            dateInputs.forEach(input => {
+                if (!input.hasAttribute('readonly')) {
+                    input.setAttribute('readonly', 'true');
+                    input.setAttribute('inputmode', 'none');
+                    input.style.caretColor = 'transparent';
+                }
+            });
+        }
+        
+        // 画面切り替え等によるDOMの再レンダリングを動的に監視して適用
+        const observer = new MutationObserver((mutations) => {
+            applyMobileFriendly();
+        });
+        
+        observer.observe(doc.body, {
+            childList: true,
+            subtree: true
+        });
+        
+        // 初回呼び出し
+        applyMobileFriendly();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
 
     # DBを初期化（テーブルがなければ作成）
     db.initialize_db()

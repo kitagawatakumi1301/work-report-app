@@ -127,6 +127,21 @@ def initialize_db():
                 deleted      INTEGER DEFAULT 0
             )
         """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS line_users (
+                line_user_id TEXT PRIMARY KEY,
+                worker_name  TEXT NOT NULL,
+                created_at   TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS line_bot_state (
+                line_user_id TEXT PRIMARY KEY,
+                step         TEXT NOT NULL,
+                draft_data   TEXT,
+                updated_at   TEXT NOT NULL
+            )
+        """)
     else:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS work_reports (
@@ -145,6 +160,21 @@ def initialize_db():
                 created_at   TEXT NOT NULL,
                 updated_at   TEXT NOT NULL,
                 deleted      INTEGER DEFAULT 0
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS line_users (
+                line_user_id TEXT PRIMARY KEY,
+                worker_name  TEXT NOT NULL,
+                created_at   TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS line_bot_state (
+                line_user_id TEXT PRIMARY KEY,
+                step         TEXT NOT NULL,
+                draft_data   TEXT,
+                updated_at   TEXT NOT NULL
             )
         """)
 

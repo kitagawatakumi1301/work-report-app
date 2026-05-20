@@ -139,29 +139,60 @@ def to_csv_bytes(df: pd.DataFrame) -> bytes:
 def page_input(worker_name: str, process_list: list, team_list: list, work_place_list: list):
     """日報を新規入力してDBに保存する。重複チェック・バリデーション付き。"""
     st.title("📝 日報入力")
-    st.info(f"作業者：**{worker_name}**　（変更はサイドバーの「利用者を変更」から）")
+    st.markdown(
+        f'<div style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);'
+        f'padding:12px 16px;border-radius:10px;margin-bottom:1rem;">'
+        f'<span style="font-size:1.05rem;">👤 <strong>{worker_name}</strong></span>'
+        f'<span style="color:#6B7280;font-size:0.85rem;margin-left:8px;">'
+        f'（変更はサイドバーから）</span></div>',
+        unsafe_allow_html=True,
+    )
 
     process_labels = [p[0] for p in process_list]
 
+    # ── 行1: 作業日・工程
     col1, col2 = st.columns(2)
     with col1:
-        work_date = st.date_input("作業日 *", value=date.today())
-        team = st.selectbox("班 *", options=team_list)
-        work_place = st.selectbox("作業場所 *", options=work_place_list)
+        work_date = st.date_input("📅 作業日 *", value=date.today())
     with col2:
-        process_label = st.selectbox("工程ID *", options=process_labels)
-        start_time_val = st.time_input("作業開始時刻 *", value=time(9, 0), step=1800)
-        end_time_val = st.time_input("作業終了時刻 *", value=time(17, 0), step=1800)
+        process_label = st.selectbox("🔧 工程ID *", options=process_labels)
+
+    # ── 行2: 開始・終了時刻
+    time_options = [f"{h:02d}:{m:02d}" for h in range(24) for m in (0, 30)]
+    default_start_idx = time_options.index("09:00") if "09:00" in time_options else 18
+    default_end_idx = time_options.index("17:00") if "17:00" in time_options else 34
+
+    col3, col4 = st.columns(2)
+    with col3:
+        start_time_str = st.selectbox("⏰ 開始時刻 *", options=time_options, index=default_start_idx)
+        start_time_val = time(*map(int, start_time_str.split(":")))
+    with col4:
+        end_time_str = st.selectbox("⏰ 終了時刻 *", options=time_options, index=default_end_idx)
+        end_time_val = time(*map(int, end_time_str.split(":")))
 
     # 作業時間プレビュー
     if end_time_val != start_time_val:
         hours = calc_hours(start_time_val, end_time_val)
-        st.success(f"⏱ 作業時間：{format_duration(hours)}　（{format_time_span(start_time_val, end_time_val)}）")
+        st.markdown(
+            f'<div style="background:linear-gradient(135deg,#F0FDF4,#DCFCE7);'
+            f'padding:12px 16px;border-radius:10px;border-left:4px solid #16A34A;">'
+            f'⏱ <strong>作業時間：{format_duration(hours)}</strong>'
+            f'<span style="color:#6B7280;margin-left:8px;">'
+            f'（{format_time_span(start_time_val, end_time_val)}）</span></div>',
+            unsafe_allow_html=True,
+        )
     elif end_time_val == start_time_val:
         hours = 0.0
         st.warning("開始時刻と終了時刻が同じです。")
 
-    note = st.text_area("備考", placeholder="特記事項があれば入力してください")
+    # ── 行3: 班・場所
+    col5, col6 = st.columns(2)
+    with col5:
+        team = st.selectbox("👥 班 *", options=team_list)
+    with col6:
+        work_place = st.selectbox("📍 作業場所 *", options=work_place_list)
+
+    note = st.text_area("📝 備考", placeholder="特記事項があれば入力してください")
     st.markdown("---")
 
     if st.button("📥 日報を保存する", type="primary", use_container_width=True):
@@ -246,7 +277,12 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
     st_autorefresh(interval=60_000, limit=None, key="history_autorefresh")
 
     st.title("📋 自分の入力履歴")
-    st.info(f"作業者：**{worker_name}**")
+    st.markdown(
+        f'<div style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);'
+        f'padding:12px 16px;border-radius:10px;margin-bottom:1rem;">'
+        f'<span style="font-size:1.05rem;">👤 <strong>{worker_name}</strong></span></div>',
+        unsafe_allow_html=True,
+    )
 
     if "save_success_msg" in st.session_state:
         st.success(st.session_state.pop("save_success_msg"))
@@ -260,17 +296,19 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
     df = pd.DataFrame(rows)
 
     # ── フィルター
-    st.markdown("#### フィルター")
-    fc1, fc2, fc3, fc4 = st.columns(4)
+    st.markdown("#### 🔍 フィルター")
+    # モバイル対応: 2行×2列に分割
+    fc1, fc2 = st.columns(2)
     with fc1:
         months = sorted(df["work_date"].str[:7].unique(), reverse=True)
         sel_month = st.selectbox("月", ["すべて"] + list(months), key="h_month")
     with fc2:
-        sel_team = st.selectbox("班", ["すべて"] + sorted(df["team"].unique()), key="h_team")
-    with fc3:
         sel_proc = st.selectbox("工程ID", ["すべて"] + sorted(df["process_id"].unique()), key="h_proc")
+    fc3, fc4 = st.columns(2)
+    with fc3:
+        sel_team = st.selectbox("班", ["すべて"] + sorted(df["team"].unique()), key="h_team")
     with fc4:
-        sel_place = st.selectbox("作業場所", ["すべて"] + sorted(df["work_place"].unique()), key="h_place")
+        sel_place = st.selectbox("場所", ["すべて"] + sorted(df["work_place"].unique()), key="h_place")
 
     fdf = df.copy()
     if sel_month != "すべて":
@@ -375,8 +413,26 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
                                           index=process_labels.index(current_label) if current_label in process_labels else 0)
             h_s, m_s = map(int, rec["start_time"].split(":"))
             h_e, m_e = map(int, rec["end_time"].split(":"))
-            new_start = st.time_input("開始時刻", value=time(h_s, m_s), step=1800)
-            new_end   = st.time_input("終了時刻", value=time(h_e, m_e), step=1800)
+            
+            time_options_edit = [f"{h:02d}:{m:02d}" for h in range(24) for m in (0, 30)]
+            start_str_init = f"{h_s:02d}:{m_s:02d}"
+            end_str_init = f"{h_e:02d}:{m_e:02d}"
+            
+            if start_str_init not in time_options_edit:
+                time_options_edit.append(start_str_init)
+                time_options_edit.sort()
+            if end_str_init not in time_options_edit:
+                time_options_edit.append(end_str_init)
+                time_options_edit.sort()
+                
+            idx_start = time_options_edit.index(start_str_init)
+            idx_end = time_options_edit.index(end_str_init)
+            
+            new_start_str = st.selectbox("開始時刻", options=time_options_edit, index=idx_start)
+            new_end_str   = st.selectbox("終了時刻", options=time_options_edit, index=idx_end)
+            
+            new_start = time(*map(int, new_start_str.split(":")))
+            new_end   = time(*map(int, new_end_str.split(":")))
         if new_end != new_start:
             new_hours = calc_hours(new_start, new_end)
             st.success(f"⏱ 作業時間：{format_duration(new_hours)}　（{format_time_span(new_start, new_end)}）")
@@ -453,19 +509,21 @@ def page_admin():
     df["month"] = df["work_date"].str[:7]
 
     # ── フィルター
-    st.markdown("### フィルター")
-    fc1, fc2, fc3, fc4, fc5 = st.columns(5)
+    st.markdown("### 🔍 フィルター")
+    # モバイル対応: 2行に分割（2+3 → 2+2+1）
+    fc1, fc2 = st.columns(2)
     with fc1:
         months = sorted(df["month"].unique(), reverse=True)
         sel_month = st.selectbox("月", ["すべて"] + list(months), key="a_month")
     with fc2:
         sel_worker = st.selectbox("作業者", ["すべて"] + sorted(df["worker_name"].unique()), key="a_worker")
+    fc3, fc4, fc5 = st.columns(3)
     with fc3:
         sel_team = st.selectbox("班", ["すべて"] + sorted(df["team"].unique()), key="a_team")
     with fc4:
         sel_proc = st.selectbox("工程ID", ["すべて"] + sorted(df["process_id"].unique()), key="a_proc")
     with fc5:
-        sel_place = st.selectbox("作業場所", ["すべて"] + sorted(df["work_place"].unique()), key="a_place")
+        sel_place = st.selectbox("場所", ["すべて"] + sorted(df["work_place"].unique()), key="a_place")
 
     fdf = df.copy()
     if sel_month != "すべて":
