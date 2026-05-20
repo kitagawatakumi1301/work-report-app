@@ -487,37 +487,113 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
     # ── 履歴のカスタムテーブル表示（ボタン付き）
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
     
-    # PC用の簡易ヘッダー
-    h_col1, h_col2, h_col3, h_col4, h_col5 = st.columns([1.2, 1.8, 3.5, 3.8, 3.0])
-    h_col1.markdown("**操作**")
-    h_col2.markdown("**作業日**")
-    h_col3.markdown("**工程**")
-    h_col4.markdown("**作業時間**")
-    h_col5.markdown("**班 | 場所**")
+    # レスポンシブ＆コンパクト化のためのカスタムCSSを注入
+    st.markdown("""
+<style>
+/* 7カラムある履歴行（stHorizontalBlock）はスマホでも横並びを維持 */
+@media (max-width: 768px) {
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        padding-bottom: 6px !important;
+        gap: 6px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"] {
+        width: auto !important;
+        min-width: 90px !important;
+        flex: 1 1 auto !important;
+        padding: 0px 4px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(1) {
+        min-width: 55px !important; /* 編集ボタン */
+        flex: 0 0 55px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(2) {
+        min-width: 90px !important; /* 作業日 */
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(3) {
+        min-width: 95px !important; /* 班 */
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(4) {
+        min-width: 140px !important; /* 工程 */
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(5) {
+        min-width: 155px !important; /* 時間 */
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(6) {
+        min-width: 60px !important; /* 場所 */
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(7) {
+        min-width: 160px !important; /* 備考 */
+    }
+}
+
+/* PCとスマホ共通：7カラムある履歴行のテキストとボタンをコンパクト化 */
+div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) p,
+div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) span,
+div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) strong {
+    font-size: 0.85rem !important;
+    margin: 0 !important;
+    line-height: 1.3 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* 7列目の備考欄だけは長文が想定されるので、適宜折り返しを可能にする */
+div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(7) p {
+    white-space: normal !important;
+    word-break: break-all !important;
+    text-overflow: clip !important;
+}
+
+/* 7列の中のボタンの高さと文字サイズを制限してコンパクトに */
+div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) button {
+    font-size: 0.8rem !important;
+    min-height: 28px !important;
+    height: 28px !important;
+    padding: 0px 4px !important;
+    line-height: 1 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+    # PC/スマホ共通のコンパクトな7列ヘッダー（絵文字なし）
+    h_cols = st.columns([0.8, 1.2, 1.2, 2.0, 2.2, 0.9, 2.5])
+    h_cols[0].markdown("**操作**")
+    h_cols[1].markdown("**作業日**")
+    h_cols[2].markdown("**班**")
+    h_cols[3].markdown("**工程**")
+    h_cols[4].markdown("**時間**")
+    h_cols[5].markdown("**場所**")
+    h_cols[6].markdown("**備考**")
     st.markdown("<hr style='margin: 0.2rem 0; border-color: #CBD5E1;' />", unsafe_allow_html=True)
 
     for idx, row in fdf.iterrows():
         with st.container():
-            r_col1, r_col2, r_col3, r_col4, r_col5 = st.columns([1.2, 1.8, 3.5, 3.8, 3.0])
-            with r_col1:
-                if st.button("✏️ 編集", key=f"btn_edit_row_{row['id']}", use_container_width=True):
+            r_cols = st.columns([0.8, 1.2, 1.2, 2.0, 2.2, 0.9, 2.5])
+            with r_cols[0]:
+                if st.button("編集", key=f"btn_edit_row_{row['id']}", use_container_width=True):
                     st.session_state["h_selected_id"] = int(row["id"])
-                    st.session_state["h_action"] = "✏️ 編集する"
+                    st.session_state["h_action"] = "編集する"
                     st.rerun()
-            with r_col2:
-                st.markdown(f"📅 **{row['work_date']}**")
-            with r_col3:
-                st.markdown(f"🔧 **{row['process_id']}** {row['process_name']}")
-            with r_col4:
+            with r_cols[1]:
+                st.markdown(row['work_date'])
+            with r_cols[2]:
+                st.markdown(row['team'])
+            with r_cols[3]:
+                st.markdown(f"{row['process_id']} {row['process_name']}")
+            with r_cols[4]:
                 duration_str = format_duration(row['hours'])
-                st.markdown(f"⏰ {row['start_time']}〜{row['end_time']} ({duration_str})")
-            with r_col5:
-                st.markdown(f"👥 {row['team']} | 📍 {row['work_place']}")
+                st.markdown(f"{row['start_time']}〜{row['end_time']} ({duration_str})")
+            with r_cols[5]:
+                st.markdown(row['work_place'])
+            with r_cols[6]:
+                st.markdown(row.get('note') or "")
             
-            if row.get("note"):
-                st.markdown(f"<div style='color:#6B7280; font-size:0.85rem; margin-top:-4px; padding-left:8px; border-left:2px solid #E2E8F0;'>💬 {row['note']}</div>", unsafe_allow_html=True)
-            
-            st.markdown("<hr style='margin: 0.4rem 0; border-color: #E2E8F0;' />", unsafe_allow_html=True)
+            st.markdown("<hr style='margin: 0.2rem 0; border-color: #E2E8F0;' />", unsafe_allow_html=True)
+
 
 
 
