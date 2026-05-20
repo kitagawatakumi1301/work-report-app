@@ -598,10 +598,29 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
     .mobile-history-hr {
         display: none !important;
     }
+
+    /* マーカー隣接セレクタによる、スマホ用編集ボタンの完全非表示化 */
+    .mobile-btn-marker {
+        display: none !important;
+    }
+    div:has(> .mobile-btn-marker) {
+        display: none !important;
+    }
+    div:has(> .mobile-btn-marker) + div {
+        display: none !important;
+    }
 }
 
 /* スマホ表示（画面幅 <= 1024px）の時の制御 */
 @media (max-width: 1024px) {
+    /* マーカー要素自体を隠す（ボタンは隠さない） */
+    .mobile-btn-marker {
+        display: none !important;
+    }
+    div:has(> .mobile-btn-marker) {
+        display: none !important;
+    }
+
     /* PC用の7カラム履歴テーブルおよびマーカー要素を確実に隠す */
     .pc-row-marker {
         display: none !important;
@@ -768,6 +787,8 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
             
             # 「上記の日報を編集する」ボタン
             st.markdown('<div class="mobile-edit-btn-wrapper">', unsafe_allow_html=True)
+            # PC表示のときにボタンを隠すためのマーカーを直前に配置
+            st.markdown('<div class="mobile-btn-marker"></div>', unsafe_allow_html=True)
             if st.button("📝 上記の日報を編集する", key=f"btn_edit_row_mobile_{row['id']}", use_container_width=True):
                 st.session_state["h_selected_id"] = int(row["id"])
                 st.session_state["h_action"] = "編集する"
