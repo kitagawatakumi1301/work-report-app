@@ -592,23 +592,20 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
         line-height: 1 !important;
     }
 
-    /* スマホ用の要素をPCでは完全に隠す */
-    .mobile-history-card,
-    .mobile-edit-btn-wrapper,
-    .mobile-history-hr {
-        display: none !important;
-    }
-
-    /* マーカー隣接セレクタによる、スマホ用編集ボタンの完全非表示化 */
-    div[data-testid="stElementContainer"]:has(.mobile-btn-marker) {
-        display: none !important;
-    }
-    div[data-testid="stElementContainer"]:has(.mobile-btn-marker) + div[data-testid="stElementContainer"] {
-        display: none !important;
-    }
+    /* PC表示時、スマホ用要素を内包するコンテナ全体を完全に消し去り、縦の隙間を埋める */
+    div[data-testid="stElementContainer"]:has(.mobile-history-card),
+    div[data-testid="stElementContainer"]:has(.mobile-edit-btn-wrapper),
+    div[data-testid="stElementContainer"]:has(.mobile-history-hr),
+    div[data-testid="stElementContainer"]:has(.mobile-btn-marker),
+    div.element-container:has(.mobile-history-card),
+    div.element-container:has(.mobile-edit-btn-wrapper),
+    div.element-container:has(.mobile-history-hr),
     div.element-container:has(.mobile-btn-marker) {
         display: none !important;
     }
+    
+    /* マーカーの隣にあるボタンが入っているコンテナも非表示にする */
+    div[data-testid="stElementContainer"]:has(.mobile-btn-marker) + div[data-testid="stElementContainer"],
     div.element-container:has(.mobile-btn-marker) + div.element-container {
         display: none !important;
     }
