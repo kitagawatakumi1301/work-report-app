@@ -349,6 +349,32 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
             st.rerun()
             return
 
+        # 画面を最上部にスクロールさせるJavaScriptインジェクション
+        st.markdown(
+            """
+            <img src="x" style="display:none;" onerror="
+                (function() {
+                    var targets = [
+                        window,
+                        window.parent,
+                        document.querySelector('.main'),
+                        window.parent ? window.parent.document.querySelector('.main') : null
+                    ];
+                    targets.forEach(function(t) {
+                        if (t) {
+                            if (typeof t.scrollTo === 'function') {
+                                t.scrollTo(0, 0);
+                            } else {
+                                t.scrollTop = 0;
+                            }
+                        }
+                    });
+                })();
+            ">
+            """,
+            unsafe_allow_html=True
+        )
+
         st.markdown("### ✏️ 日報の編集・削除")
         action = st.radio("操作を選択してください",
                           ["✏️ 編集する", "🗑️ 削除する"],
