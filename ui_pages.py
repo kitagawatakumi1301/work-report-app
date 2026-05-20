@@ -547,90 +547,51 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
     # レスポンシブ＆コンパクト化のためのカスタムCSSを注入
     st.markdown("""
 <style>
-/* 7カラムある履歴行（stHorizontalBlock）はスマホでも横並びを維持 */
-@media (max-width: 768px) {
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) {
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-        padding-bottom: 6px !important;
-        gap: 6px !important;
+/* PC表示（画面幅 >= 1025px）の時の制御 */
+@media (min-width: 1025px) {
+    /* PC表示用のグリッドヘッダー */
+    .history-header-grid {
+        display: grid;
+        grid-template-columns: 0.8fr 1.2fr 1.2fr 2.0fr 2.2fr 0.9fr 2.5fr;
+        gap: 1rem;
+        width: 100%;
+        align-items: center;
+        padding-bottom: 4px;
     }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"] {
-        width: auto !important;
-        min-width: 90px !important;
-        flex: 1 1 auto !important;
+    .history-header-grid > div {
+        font-size: 0.85rem;
+        font-weight: bold;
+        color: #1E293B;
+    }
+
+    /* 7カラムある履歴行のテキストとボタンをコンパクト化 */
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) p,
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) span,
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) strong {
+        font-size: 0.85rem !important;
+        margin: 0 !important;
+        line-height: 1.3 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    /* 7列目の備考欄だけは長文が想定されるので、適宜折り返しを可能にする */
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(7) p {
+        white-space: normal !important;
+        word-break: break-all !important;
+        text-overflow: clip !important;
+    }
+
+    /* 7列の中のボタンの高さと文字サイズを制限してコンパクトに */
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) button {
+        font-size: 0.8rem !important;
+        min-height: 28px !important;
+        height: 28px !important;
         padding: 0px 4px !important;
+        line-height: 1 !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(1) {
-        min-width: 55px !important; /* 編集ボタン */
-        flex: 0 0 55px !important;
-    }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(2) {
-        min-width: 90px !important; /* 作業日 */
-    }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(3) {
-        min-width: 95px !important; /* 班 */
-    }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(4) {
-        min-width: 140px !important; /* 工程 */
-    }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(5) {
-        min-width: 155px !important; /* 時間 */
-    }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(6) {
-        min-width: 60px !important; /* 場所 */
-    }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(7) {
-        min-width: 160px !important; /* 備考 */
-    }
-}
 
-/* PCとスマホ共通：7カラムある履歴行のテキストとボタンをコンパクト化 */
-div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) p,
-div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) span,
-div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) strong {
-    font-size: 0.85rem !important;
-    margin: 0 !important;
-    line-height: 1.3 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-
-/* 7列目の備考欄だけは長文が想定されるので、適宜折り返しを可能にする */
-div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) > div[data-testid="column"]:nth-child(7) p {
-    white-space: normal !important;
-    word-break: break-all !important;
-    text-overflow: clip !important;
-}
-
-/* 7列の中のボタンの高さと文字サイズを制限してコンパクトに */
-div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7)) button {
-    font-size: 0.8rem !important;
-    min-height: 28px !important;
-    height: 28px !important;
-    padding: 0px 4px !important;
-    line-height: 1 !important;
-}
-
-/* PC表示用のグリッドヘッダー */
-.history-header-grid {
-    display: grid;
-    grid-template-columns: 0.8fr 1.2fr 1.2fr 2.0fr 2.2fr 0.9fr 2.5fr;
-    gap: 1rem;
-    width: 100%;
-    align-items: center;
-    padding-bottom: 4px;
-}
-.history-header-grid > div {
-    font-size: 0.85rem;
-    font-weight: bold;
-    color: #1E293B;
-}
-
-/* PC表示（画面幅 > 768px）の時の制御 */
-@media (min-width: 769px) {
     /* スマホ用の要素をPCでは完全に隠す */
     .mobile-history-card,
     .mobile-edit-btn-wrapper,
@@ -639,8 +600,8 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7
     }
 }
 
-/* スマホ表示（画面幅 <= 768px）の時の制御 */
-@media (max-width: 768px) {
+/* スマホ表示（画面幅 <= 1024px）の時の制御 */
+@media (max-width: 1024px) {
     /* PC用の7カラム履歴テーブルおよびマーカー要素を確実に隠す */
     .pc-row-marker {
         display: none !important;
@@ -651,7 +612,7 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(7
     div:has(> .pc-row-marker) + div {
         display: none !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(div[data-testid="column"]:nth-child(7)) {
+    div[data-testid="stHorizontalBlock"] {
         display: none !important;
     }
     .pc-history-hr {
