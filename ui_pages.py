@@ -349,26 +349,50 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
             st.rerun()
             return
 
-        # 画面を最上部にスクロールさせるJavaScriptインジェクション
+        # 画面を最上部にスクロールさせるCORS対応・安全なリトライ型JavaScriptインジェクション
         st.markdown(
             """
             <img src="x" style="display:none;" onerror="
                 (function() {
-                    var targets = [
-                        window,
-                        window.parent,
-                        document.querySelector('.main'),
-                        window.parent ? window.parent.document.querySelector('.main') : null
-                    ];
-                    targets.forEach(function(t) {
-                        if (t) {
-                            if (typeof t.scrollTo === 'function') {
-                                t.scrollTo(0, 0);
-                            } else {
-                                t.scrollTop = 0;
-                            }
-                        }
-                    });
+                    function resetScroll() {
+                        var selectors = [
+                            '.main',
+                            'div[data-testid=\\'stAppViewContainer\\']',
+                            'div.block-container'
+                        ];
+                        
+                        // 1. windowオブジェクトのスクロールリセット
+                        try {
+                            window.scrollTo(0, 0);
+                        } catch(e) {}
+                        
+                        try {
+                            document.documentElement.scrollTop = 0;
+                            document.body.scrollTop = 0;
+                        } catch(e) {}
+
+                        // 2. Streamlit内部コンテナ要素のスクロールリセット
+                        selectors.forEach(function(sel) {
+                            try {
+                                var el = document.querySelector(sel);
+                                if (el) {
+                                    el.scrollTop = 0;
+                                    if (typeof el.scrollTo === 'function') {
+                                        el.scrollTo(0, 0);
+                                    }
+                                }
+                            } catch(e) {}
+                        });
+                    }
+
+                    // 描画遅延やブラウザの自動スクロール復元に対抗するため、時間差で計6回実行する
+                    resetScroll();
+                    setTimeout(resetScroll, 10);
+                    setTimeout(resetScroll, 50);
+                    setTimeout(resetScroll, 100);
+                    setTimeout(resetScroll, 300);
+                    setTimeout(resetScroll, 600);
+                    setTimeout(resetScroll, 1000);
                 })();
             ">
             """,
