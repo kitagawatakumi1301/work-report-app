@@ -188,9 +188,9 @@ def page_input(worker_name: str, process_list: list, team_list: list, work_place
         process_label = st.selectbox("🔧 工程ID *", options=process_labels)
 
     # ── 行2: 開始・終了時刻
-    time_options = [f"{h:02d}:{m:02d}" for h in range(24) for m in (0, 30)]
-    default_start_idx = time_options.index("09:00") if "09:00" in time_options else 18
-    default_end_idx = time_options.index("17:00") if "17:00" in time_options else 34
+    time_options = [f"{h:02d}:{m:02d}" for h in range(24) for m in (0, 15, 30, 45)]
+    default_start_idx = time_options.index("09:00") if "09:00" in time_options else 36
+    default_end_idx = time_options.index("17:00") if "17:00" in time_options else 68
 
     col3, col4 = st.columns(2)
     with col3:
@@ -432,7 +432,7 @@ def page_history(worker_name: str, process_list: list, team_list: list, work_pla
             h_s, m_s = map(int, rec["start_time"].split(":"))
             h_e, m_e = map(int, rec["end_time"].split(":"))
             
-            time_options_edit = [f"{h:02d}:{m:02d}" for h in range(24) for m in (0, 30)]
+            time_options_edit = [f"{h:02d}:{m:02d}" for h in range(24) for m in (0, 15, 30, 45)]
             start_str_init = f"{h_s:02d}:{m_s:02d}"
             end_str_init = f"{h_e:02d}:{m_e:02d}"
             
